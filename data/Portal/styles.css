@@ -1,0 +1,346 @@
+:root{
+  --bg:#f3f5f7;
+  --card:#fff;
+  --text:#111827;
+  --muted:#6b7280;
+  --line:#e5e7eb;
+  --primary:#2f7d5a;
+  --primary2:#256a4c;
+  --shadow:0 6px 24px rgba(0,0,0,.08);
+  --radius:14px;
+  --font: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:var(--font);
+  color:var(--text);
+  background:var(--bg);
+}
+
+.topbar{
+  position:sticky; top:0;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  gap:18px;
+  padding:14px 18px;
+  background:#290E4A;
+  border-bottom:1px solid var(--line);
+}
+.brand{
+  display:flex;
+  align-items:center;
+}
+.brand img{
+  height:34px;
+  width:auto;
+}
+.nav{display:flex; gap:14px; flex:1; align-items:center; justify-content:center;}
+.navlink{
+  text-decoration:none;
+  color:#fff;
+  padding:8px 10px;
+  border-radius:10px;
+  font-size:14px;
+}
+.navlink:hover{background:#f3f4f6}
+.navlink.active{font-weight:600}
+
+.btn{
+  border:0;
+  border-radius:10px;
+  padding:10px 16px;
+  cursor:pointer;
+  font-weight:600;
+}
+.btn-primary{
+  background:var(--primary);
+  color:#fff;
+}
+.btn-primary:hover{background:var(--primary2)}
+
+.container{max-width:1060px; margin:26px auto; padding:0 16px;}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:22px;
+}
+
+.grid{display:grid; grid-template-columns: 280px 1fr; gap:26px;}
+@media (max-width: 860px){ .grid{grid-template-columns:1fr;} .nav{display:none;} }
+
+.card-left h2{margin:0 0 10px 0;}
+.card-left p{margin:10px 0; color:var(--muted); line-height:1.45;}
+.muted{color:var(--muted);}
+
+.field{margin:12px 0;}
+
+label{
+  display:block; 
+  font-size:16px; 
+  font-weight:500;
+  color:#374151; 
+  margin:0 0 6px;
+}
+
+/* Editable vs readonly field distinction */
+input:not([readonly]),
+select,
+textarea{
+  background:#F0F6FF;
+}
+
+input:not([readonly]),
+select,
+textarea{
+  border-color:#c7d2fe;
+}
+
+/* Force editable background on selects (Safari / macOS fix) */
+select{
+  background:#F0F6FF;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  appearance:none;
+}
+
+select{
+  background-image:
+    linear-gradient(45deg, transparent 50%, #374151 50%),
+    linear-gradient(135deg, #374151 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 13px) 50%;
+  background-size:5px 5px;
+  background-repeat:no-repeat;
+}
+
+/* Input fields */
+input[readonly]{
+  background:#ffffff;
+  color:#6b7280;
+}
+
+input, select{
+  width:100%;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  font-size:14px;
+  outline:none;
+  background:#fff;
+}
+input:focus, select:focus{border-color:#c7d2fe; box-shadow:0 0 0 3px rgba(99,102,241,.12);}
+
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+
+.symbol-row{
+  display:grid;
+  grid-template-columns: 1fr 140px;
+  align-items:end;
+  gap:14px;
+}
+.symbol-preview{
+  height:56px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.diamond{
+  width:52px; height:52px;
+  background:#e11d48;
+  transform:rotate(45deg);
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.diamond span{
+  transform:rotate(-45deg);
+  color:#fff;
+  font-weight:800;
+  font-size:22px;
+}
+
+.toggle{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:16px 0 10px;
+}
+.switch{position:relative; width:44px; height:24px; display:inline-block;}
+.switch input{display:none;}
+.slider{
+  position:absolute; inset:0;
+  background:#d1d5db;
+  border-radius:999px;
+  transition:.2s;
+}
+.slider:before{
+  content:"";
+  position:absolute; top:3px; left:3px;
+  width:18px; height:18px;
+  background:#fff;
+  border-radius:999px;
+  transition:.2s;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+.switch input:checked + .slider{background:var(--primary);}
+.switch input:checked + .slider:before{transform:translateX(20px);}
+
+.section-title{
+  margin-top:16px;
+  font-size:13px;
+  color:#374151;
+  font-weight:700;
+}
+.status-box{
+  margin-top:10px;
+  background:#f9fafb;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px;
+  min-height:70px;
+}
+.btn-blue{
+  background:#2563eb;
+  color:#fff;
+}
+.btn-blue:hover{background:#1d4ed8;}
+
+.btn-green{
+  background:#16a34a;
+  color:#fff;
+}
+.btn-green:hover{background:#15803d;}
+
+/* Timed Termination compact row */
+.tt-row{
+  display:grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap:12px;
+}
+
+.tt-row input{
+  width:100%;
+  max-width:120px;   /* ~2 digits */
+  text-align:center;
+}
+
+
+/* Inline NATO symbol aligned between GPS fields */
+.symbol-inline{
+  display:grid;
+  grid-template-columns: auto 1fr;
+  align-items:center;
+}
+
+.nato-symbol-inline{
+  height:42px;
+  width:auto;
+  justify-self:center;
+  transform: translateX(-700%);
+}
+
+/* Globalstar ID fixed-width display */
+.globalstar-id{
+  width: 20ch;       /* exactly 20 characters */
+  max-width: 20ch;
+  text-align: center;
+}
+
+/* Status pill (non-clickable, button-like) */
+.status-row{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.status-pill{
+  padding:10px 16px;
+  border-radius:10px;
+  font-weight:700;
+  color:#fff;
+  min-width:120px;
+  text-align:center;
+  user-select:none;
+}
+
+/* Status colors */
+.status-preflight{
+  background:#16a34a;   /* green */
+}
+
+.status-airborne{
+  background:#2563eb;   /* blue */
+}
+
+.status-landed{
+  background:#92400e;   /* brown */
+}
+
+.status-abandoned{
+  background:#dc2626;   /* red */
+}
+
+/* Balloon callsign fixed width */
+.callsign-field{
+  width: 25ch;        /* exactly ~25 characters */
+  max-width: 100%;
+}
+
+/* Balloon type fixed width */
+.balloon-type-field{
+  width: 25ch;        /* ~25 characters */
+  max-width: 100%;
+}
+
+/* Mission section headers */
+.mission-section-title{
+  font-size:16px;
+  font-weight:700;
+  text-decoration:underline;
+  margin:18px 0 10px;
+}
+
+/* Geofence coordinate rows: label left of input */
+.coord-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.coord-row label{
+  margin:0;            /* override default label bottom margin */
+  width:88px;          /* keeps alignment consistent */
+}
+
+.coord-row input{
+  max-width:140px;     /* enough for -123.123456 */
+  text-align:center;
+}
+
+.coord-pair{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:18px;
+  margin:10px 0;
+}
+
+.coord-index{
+  font-weight:700;
+  color:#6b7280;
+  margin-right:6px;
+  width:26px;
+  text-align:right;
+}
+
+/* Invalid field highlight */
+.field-error{
+  border-color:#dc2626 !important;
+  box-shadow:0 0 0 3px rgba(220,38,38,.12) !important;
+}

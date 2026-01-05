@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mission Library</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="./assets/Logo_Small.png" alt="SABER" />
+    </div>
+
+    <nav class="nav">
+      <a class="navlink" href="./configuration.html">Configuration</a>
+      <a class="navlink active" href="./mission_library.html">Mission Library</a>
+      <a class="navlink" href="./active_mission.html">Active Mission</a>
+    </nav>
+
+    <button class="btn btn-primary" onclick="location.href='./active_mission.html'">Go to Active</button>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2 style="margin:0 0 14px 0;">Mission Library</h2>
+      <div id="missions" class="status-box">Loading missions…</div>
+    </section>
+  </main>
+
+  <script src="./mission_library.js"></script>
+</body>
+</html>

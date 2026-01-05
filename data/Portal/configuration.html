@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SABER Config Portal</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="./assets/Logo_Small.png" alt="SABER" />
+    </div>
+
+    <nav class="nav">
+      <a class="navlink active" href="./configuration.html">Configuration</a>
+      <a class="navlink" href="./mission_library.html">Mission Library</a>
+      <a class="navlink" href="./active_mission.html">Active Mission</a>
+    </nav>
+
+    <button id="saveBtn" class="btn btn-primary">Save</button>
+  </header>
+
+  <main class="container">
+    <section class="card grid">
+      <div class="card-left">
+        <h2>SABER T2C</h2>
+        <p>Add the callsign for this ballon, which will be displayed on the tracking page.</p>
+        <p>Select the balloon type being flown.</p>
+        <p>Confirm status is "Preflight".</p>
+        <p>Confirm GPS data is accurate.</p>
+      </div>
+
+      <div class="card-right">
+        <div class="field">
+          <label for="callsign">Balloon Callsign</label>
+          <input id="callsign" 
+            class="callsign-field"
+            type="text"
+            placeholder="SABER_11"
+            maxlength="25" />
+        </div>
+
+        <div class="field">
+          <label for="balloonType">Balloon Type</label>
+          <select id="balloonType" class="balloon-type-field">
+            <option value="SABER-70-100">SABER 70-100</option>
+            <option value="SABER-60-100">SABER 60-100</option>
+            <option value="SABER-50-100">SABER 50-100</option>
+
+            <option value="SABER-70-050">SABER 70-050</option>
+            <option value="SABER-60-050">SABER 60-050</option>
+            <option value="SABER-50-050">SABER 50-050</option>
+
+            <option value="SABER-70-025">SABER 70-025</option>
+            <option value="SABER-60-025">SABER 60-025</option>
+            <option value="SABER-50-025">SABER 50-025</option>
+
+            <option value="SABER-100-012">SABER 100-012</option>
+            <option value="SABER-70-012">SABER 70-012</option>
+            <option value="SABER-60-012">SABER 60-012</option>
+            <option value="SABER-50-012">SABER 50-012</option>
+
+            <option value="SABER-70-006">SABER 70-006</option>
+            <option value="SABER-60-006">SABER 60-006</option>
+            <option value="SABER-50-006">SABER 50-006</option>
+
+            <option value="SABER-30-006">SABER 30-006</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="note">Note</label>
+          <input id="note" type="text" placeholder="Free entry…" />
+        </div>
+
+        <!-- NATO symbol (display only) -->
+        <div class="field symbol-inline">
+          <label>Symbol</label>
+          <img
+            class="nato-symbol-inline"
+            src="./assets/NATO_Friendly_Air.png"
+            alt="NATO Friendly Air"
+          />
+        </div>
+
+        <!-- GPS (display only) -->
+        <div class="field tt-row">
+          <div>
+            <label for="lat">Latitude</label>
+            <input id="lat" type="text" placeholder="30.350000" readonly />
+          </div>
+          <div>
+            <label for="lon">Longitude</label>
+            <input id="lon" type="text" placeholder="-97.800000" readonly />
+          </div>
+          <div>
+            <label for="alt_m">Altitude (m)</label>
+            <input id="alt_m" type="text" placeholder="10600" readonly />
+          </div>
+          <div>
+            <label for="alt_ft">Altitude (ft)</label>
+            <input id="alt_ft" type="text" placeholder="34777" readonly />
+          </div>
+        </div>
+
+        <div class="field tt-row">
+          <div>
+            <label for="gpsTime">GPS Time</label>
+            <input id="gpsTime" type="text" placeholder="07:00 Z" readonly />
+          </div>
+          <div>
+            <label for="gpsDate">GPS Date</label>
+            <input id="gpsDate" type="text" placeholder="02 Jan 2026" readonly />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="globalstarId">Globalstar ID</label>
+          <input id="globalstarId" class="globalstar-id" type="text" placeholder="GS-XXXXXXXX" readonly />
+        </div>
+
+        <div class="toggle">
+          <label class="switch">
+            <input id="autoErase" type="checkbox" />
+            <span class="slider"></span>
+          </label>
+          <span>Auto-erase after termination</span>
+        </div>
+
+        <div class="field status-row">
+          <label>Status</label>
+          <div id="statusPill" class="status-pill status-preflight">
+            Preflight
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./configuration.js"></script>
+</body>
+</html>
