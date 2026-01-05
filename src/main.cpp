@@ -1,34 +1,40 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 
-const char* ssid = "YOUR_WIFI";
-const char* pass = "YOUR_PASS";
+const char* AP_SSID = "SABER-T2C";
+const char* AP_PASS = "saber1234";   // change later
 
 AsyncWebServer server(80);
 
 void setup() {
   Serial.begin(115200);
+  delay(500);
 
+  // Filesystem
   if (!LittleFS.begin(true)) {
     Serial.println("LittleFS mount failed");
     return;
   }
+  Serial.println("LittleFS mounted");
 
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, pass);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(250);
-    Serial.print(".");
-  }
-  Serial.println();
-  Serial.print("IP: ");
-  Serial.println(WiFi.localIP());
+  // Wi-Fi AP
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(AP_SSID, AP_PASS);
 
-  server.serveStatic("/", LittleFS, "/Portal/")
+  IPAddress ip = WiFi.softAPIP();
+  Serial.print("AP IP: ");
+  Serial.println(ip);
+
+  // Serve Portal
+  server.serveStatic("/", LittleFS, "/")
         .setDefaultFile("configuration.html");
 
   server.begin();
+  Serial.println("Web server started");
 }
 
-void loop() {}
+void loop() {
+  // nothing here
+}
