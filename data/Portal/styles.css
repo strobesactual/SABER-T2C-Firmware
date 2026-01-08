@@ -10,7 +10,9 @@
   --radius:14px;
   --font: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
 }
+
 *{box-sizing:border-box}
+
 body{
   margin:0;
   font-family:var(--font);
@@ -18,8 +20,10 @@ body{
   background:var(--bg);
 }
 
+/* Top bar */
 .topbar{
-  position:sticky; top:0;
+  position:sticky;
+  top:0;
   z-index:10;
   display:flex;
   align-items:center;
@@ -28,15 +32,25 @@ body{
   background:#290E4A;
   border-bottom:1px solid var(--line);
 }
+
 .brand{
   display:flex;
   align-items:center;
 }
+
 .brand img{
   height:34px;
   width:auto;
 }
-.nav{display:flex; gap:14px; flex:1; align-items:center; justify-content:center;}
+
+.nav{
+  display:flex;
+  gap:14px;
+  flex:1;
+  align-items:center;
+  justify-content:center;
+}
+
 .navlink{
   text-decoration:none;
   color:#fff;
@@ -44,9 +58,11 @@ body{
   border-radius:10px;
   font-size:14px;
 }
-.navlink:hover{background:#f3f4f6}
+
+.navlink:hover{background:rgba(255,255,255,.10)}
 .navlink.active{font-weight:600}
 
+/* Buttons */
 .btn{
   border:0;
   border-radius:10px;
@@ -54,14 +70,47 @@ body{
   cursor:pointer;
   font-weight:600;
 }
+
 .btn-primary{
   background:var(--primary);
   color:#fff;
 }
+
 .btn-primary:hover{background:var(--primary2)}
 
-.container{max-width:1060px; margin:26px auto; padding:0 16px;}
+.btn-blue{
+  background:#2563eb;
+  color:#fff;
+}
 
+.btn-blue:hover{background:#1d4ed8}
+
+.btn-green{
+  background:#16a34a;
+  color:#fff;
+}
+
+.btn-green:hover{background:#15803d}
+
+/* Layout */
+.container{
+  max-width:1060px;
+  margin:26px auto;
+  padding:0 16px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns: 280px 1fr;
+  gap:26px;
+}
+
+@media (max-width: 860px){
+  .grid{grid-template-columns:1fr;}
+  .nav{display:none;}
+}
+
+/* Cards */
 .card{
   background:var(--card);
   border:1px solid var(--line);
@@ -70,21 +119,88 @@ body{
   padding:22px;
 }
 
-.grid{display:grid; grid-template-columns: 280px 1fr; gap:26px;}
-@media (max-width: 860px){ .grid{grid-template-columns:1fr;} .nav{display:none;} }
+/* Two stacked cards on Configuration page */
+.cards-2{
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+  max-width:920px;
+  margin:0 auto;
+}
 
+/* Restore left/right layout for configuration card only */
+.card:not(.gps-card){
+  display:grid;
+  grid-template-columns:320px 1fr;
+  gap:32px;
+  align-items:start;
+}
+
+/* Restore left/right layout for GPS card */
+.gps-card{
+  display:grid;
+  grid-template-columns:260px 1fr;
+  gap:32px;
+  align-items:start;
+}
+
+/* Left column text */
 .card-left h2{margin:0 0 10px 0;}
 .card-left p{margin:10px 0; color:var(--muted); line-height:1.45;}
 .muted{color:var(--muted);}
 
+/* Section titles with icons (SABER + GPS) */
+.card-title,
+.gps-card-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.section-icon,
+.gps-icon{
+  width:30px;      /* GPS ~50% bigger vs typical 20px */
+  height:30px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+
+.card-title h2,
+.gps-card-title h2{
+  margin:0;
+}
+
+.gps-card-title p{
+  margin:2px 0 0 0;
+  opacity:.75;
+  font-size:.95rem;
+}
+
+/* Fields */
 .field{margin:12px 0;}
 
 label{
-  display:block; 
-  font-size:16px; 
+  display:block;
+  font-size:16px;
   font-weight:500;
-  color:#374151; 
+  color:#374151;
   margin:0 0 6px;
+}
+
+/* Inputs */
+input, select{
+  width:100%;
+  padding:11px 12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  font-size:14px;
+  outline:none;
+  background:#fff;
+}
+
+input:focus, select:focus{
+  border-color:#c7d2fe;
+  box-shadow:0 0 0 3px rgba(99,102,241,.12);
 }
 
 /* Editable vs readonly field distinction */
@@ -92,23 +208,19 @@ input:not([readonly]),
 select,
 textarea{
   background:#F0F6FF;
+  border-color:#c7d2fe;
 }
 
-input:not([readonly]),
-select,
-textarea{
-  border-color:#c7d2fe;
+input[readonly]{
+  background:#ffffff;
+  color:#6b7280;
 }
 
 /* Force editable background on selects (Safari / macOS fix) */
 select{
-  background:#F0F6FF;
   -webkit-appearance:none;
   -moz-appearance:none;
   appearance:none;
-}
-
-select{
   background-image:
     linear-gradient(45deg, transparent 50%, #374151 50%),
     linear-gradient(135deg, #374151 50%, transparent 50%);
@@ -119,104 +231,53 @@ select{
   background-repeat:no-repeat;
 }
 
-/* Input fields */
-input[readonly]{
-  background:#ffffff;
-  color:#6b7280;
-}
-
-input, select{
-  width:100%;
-  padding:11px 12px;
-  border:1px solid var(--line);
-  border-radius:10px;
-  font-size:14px;
-  outline:none;
-  background:#fff;
-}
-input:focus, select:focus{border-color:#c7d2fe; box-shadow:0 0 0 3px rgba(99,102,241,.12);}
-
-.two-col{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
-
-.symbol-row{
+/* Two-column helper */
+.two-col{
   display:grid;
-  grid-template-columns: 1fr 140px;
-  align-items:end;
+  grid-template-columns:1fr 1fr;
   gap:14px;
 }
-.symbol-preview{
-  height:56px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.diamond{
-  width:52px; height:52px;
-  background:#e11d48;
-  transform:rotate(45deg);
-  border-radius:8px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.diamond span{
-  transform:rotate(-45deg);
-  color:#fff;
-  font-weight:800;
-  font-size:22px;
-}
 
+/* Toggle */
 .toggle{
   display:flex;
   align-items:center;
   gap:10px;
   margin:16px 0 10px;
 }
-.switch{position:relative; width:44px; height:24px; display:inline-block;}
+
+.switch{
+  position:relative;
+  width:44px;
+  height:24px;
+  display:inline-block;
+}
+
 .switch input{display:none;}
+
 .slider{
-  position:absolute; inset:0;
+  position:absolute;
+  inset:0;
   background:#d1d5db;
   border-radius:999px;
   transition:.2s;
 }
+
 .slider:before{
   content:"";
-  position:absolute; top:3px; left:3px;
-  width:18px; height:18px;
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:18px;
+  height:18px;
   background:#fff;
   border-radius:999px;
   transition:.2s;
   box-shadow:0 2px 8px rgba(0,0,0,.18);
 }
+
 .switch input:checked + .slider{background:var(--primary);}
 .switch input:checked + .slider:before{transform:translateX(20px);}
-
-.section-title{
-  margin-top:16px;
-  font-size:13px;
-  color:#374151;
-  font-weight:700;
-}
-.status-box{
-  margin-top:10px;
-  background:#f9fafb;
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:14px;
-  min-height:70px;
-}
-.btn-blue{
-  background:#2563eb;
-  color:#fff;
-}
-.btn-blue:hover{background:#1d4ed8;}
-
-.btn-green{
-  background:#16a34a;
-  color:#fff;
-}
-.btn-green:hover{background:#15803d;}
 
 /* Timed Termination compact row */
 .tt-row{
@@ -227,33 +288,34 @@ input:focus, select:focus{border-color:#c7d2fe; box-shadow:0 0 0 3px rgba(99,102
 
 .tt-row input{
   width:100%;
-  max-width:120px;   /* ~2 digits */
+  max-width:120px;
   text-align:center;
 }
 
-
-/* Inline NATO symbol aligned between GPS fields */
+/* NATO symbol row: label left, symbol right */
 .symbol-inline{
-  display:grid;
-  grid-template-columns: auto 1fr;
+  display:flex;
   align-items:center;
+
+  gap:16px;
 }
 
+.symbol-inline label{margin:0;}
+
 .nato-symbol-inline{
-  height:42px;
-  width:auto;
-  justify-self:center;
-  transform: translateX(-700%);
+  width:46px;     /* tweak if needed */
+  height:auto;
+  display:block;
 }
 
 /* Globalstar ID fixed-width display */
 .globalstar-id{
-  width: 20ch;       /* exactly 20 characters */
-  max-width: 20ch;
-  text-align: center;
+  width:20ch;
+  max-width:20ch;
+  text-align:center;
 }
 
-/* Status pill (non-clickable, button-like) */
+/* Status pill */
 .status-row{
   display:flex;
   align-items:center;
@@ -270,33 +332,20 @@ input:focus, select:focus{border-color:#c7d2fe; box-shadow:0 0 0 3px rgba(99,102
   user-select:none;
 }
 
-/* Status colors */
-.status-preflight{
-  background:#16a34a;   /* green */
-}
+.status-preflight{background:#16a34a;}
+.status-airborne{background:#2563eb;}
+.status-landed{background:#92400e;}
+.status-abandoned{background:#dc2626;}
 
-.status-airborne{
-  background:#2563eb;   /* blue */
-}
-
-.status-landed{
-  background:#92400e;   /* brown */
-}
-
-.status-abandoned{
-  background:#dc2626;   /* red */
-}
-
-/* Balloon callsign fixed width */
+/* Balloon callsign/type fixed width */
 .callsign-field{
-  width: 25ch;        /* exactly ~25 characters */
-  max-width: 100%;
+  width:25ch;
+  max-width:100%;
 }
 
-/* Balloon type fixed width */
 .balloon-type-field{
-  width: 25ch;        /* ~25 characters */
-  max-width: 100%;
+  width:25ch;
+  max-width:100%;
 }
 
 /* Mission section headers */
@@ -307,7 +356,7 @@ input:focus, select:focus{border-color:#c7d2fe; box-shadow:0 0 0 3px rgba(99,102
   margin:18px 0 10px;
 }
 
-/* Geofence coordinate rows: label left of input */
+/* Geofence coordinate rows */
 .coord-row{
   display:flex;
   align-items:center;
@@ -315,12 +364,12 @@ input:focus, select:focus{border-color:#c7d2fe; box-shadow:0 0 0 3px rgba(99,102
 }
 
 .coord-row label{
-  margin:0;            /* override default label bottom margin */
-  width:88px;          /* keeps alignment consistent */
+  margin:0;
+  width:88px;
 }
 
 .coord-row input{
-  max-width:140px;     /* enough for -123.123456 */
+  max-width:140px;
   text-align:center;
 }
 
