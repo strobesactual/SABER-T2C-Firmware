@@ -1,9 +1,10 @@
 #pragma once
 #include <Arduino.h>
+#include <stdint.h>
 
 void display_init();
 void display_show_boot();
-void display_update_boot(uint8_t percent);
+void display_update_boot(uint8_t pct);
 void display_show_status();
 
 void display_set_callsign(const char *cs);

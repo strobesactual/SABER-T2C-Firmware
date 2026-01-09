@@ -1,7 +1,7 @@
-#include "display.h"
+#include "display/display.h"
 #include <Wire.h>
 #include <U8g2lib.h>
-#include "kyberdyne_logo.h"
+#include "display/kyberdyne_logo.h"
 
 // ---- I2C pins (adjust only here) ----
 #define I2C_SDA 17
@@ -39,51 +39,72 @@ void display_show_boot()
 
     // Text under logo
     u8g2.setFont(u8g2_font_6x12_tf);
-    u8g2.drawStr(0, 46, "SABER T2C v3.0");
+    u8g2.drawStr(0, 46, "SABER T2C v3.0 GPS TESTING");
 
     u8g2.sendBuffer();
 }
 
-void display_update_boot(uint8_t percent)
+void display_update_boot(uint8_t pct)
 {
-    if (percent > 100) percent = 100;
+    u8g2.clearBuffer();
 
-    char buf[24];
-    snprintf(buf, sizeof(buf), "Booting %u%%", percent);
+    // Logo (top half)
+    u8g2.drawXBMP(0, 0, 128, 32, kyberdyne_logo_bitmap);
 
-    // Clear only the bottom area where the progress lives (keep logo + version)
-    u8g2.setDrawColor(0);
-    u8g2.drawBox(0, 50, 128, 14);
-    u8g2.setDrawColor(1);
-
-    // Progress label
     u8g2.setFont(u8g2_font_6x12_tf);
-    u8g2.drawStr(0, 60, buf);
+    u8g2.drawStr(0, 42, "SABER T2C v3.0 GPS TEST");
 
-    // Progress bar above the label
-    u8g2.drawFrame(0, 50, 128, 10);
-    int fill = (percent * 124) / 100;
-    u8g2.drawBox(2, 52, fill, 6);
+    // ---- Boot line ----
+    // Baseline for text line
+    const uint8_t yText = 58;
+
+    // "Booting" + percent
+    char bootBuf[20];
+    snprintf(bootBuf, sizeof(bootBuf), "Booting %u%%", (unsigned)pct);
+    u8g2.drawStr(0, yText, bootBuf);
+
+    // ---- Progress bar to the right of text ----
+    // Approx text width: 6px per char for this font
+    // "Booting 100%" is 12 chars -> ~72px. We’ll start bar after that.
+    const uint8_t barX = 78;
+    const uint8_t barW = 48;
+    const uint8_t barH = 10;
+    const uint8_t barY = yText - barH + 2;  // align bar with text line
+
+    u8g2.drawFrame(barX, barY, barW, barH);
+    uint8_t fill = (pct * (barW - 2)) / 100;
+    u8g2.drawBox(barX + 1, barY + 1, fill, barH - 2);
 
     u8g2.sendBuffer();
 }
 
 void display_show_status()
 {
+    const uint8_t xLabel = 0;
+    const uint8_t xVal   = 45;
+
     u8g2.clearBuffer();
     u8g2.setFont(u8g2_font_6x12_tf);
 
-    char l1[32]; snprintf(l1, sizeof(l1), "ID: %s", callsign);
-    char l2[32]; snprintf(l2, sizeof(l2), "GPS: %s %u", gpsFix ? "Good" : "No Fix", gpsSats);
-    char l3[32]; snprintf(l3, sizeof(l3), "SATCOM: %s", satcom);
-    char l4[32]; snprintf(l4, sizeof(l4), "LoRa: %s", lora);
-    char l5[32]; snprintf(l5, sizeof(l5), "BAT: %u%%", batteryPct);
+    u8g2.drawStr(xLabel, 12, "ID:");
+    u8g2.drawStr(xVal,   12, callsign);
 
-    u8g2.drawStr(0, 12, l1);
-    u8g2.drawStr(0, 24, l2);
-    u8g2.drawStr(0, 36, l3);
-    u8g2.drawStr(0, 48, l4);
-    u8g2.drawStr(0, 60, l5);
+    u8g2.drawStr(xLabel, 24, "GPS:");
+    char gpsBuf[16];
+    snprintf(gpsBuf, sizeof(gpsBuf), "%s %u",
+             gpsFix ? "Good" : "No Fix", gpsSats);
+    u8g2.drawStr(xVal, 24, gpsBuf);
+
+    u8g2.drawStr(xLabel, 36, "SATCOM:");
+    u8g2.drawStr(xVal,   36, satcom);
+
+    u8g2.drawStr(xLabel, 48, "LoRa:");
+    u8g2.drawStr(xVal,   48, lora);
+
+    u8g2.drawStr(xLabel, 60, "BAT:");
+    char batBuf[8];
+    snprintf(batBuf, sizeof(batBuf), "%u%%", batteryPct);
+    u8g2.drawStr(xVal, 60, batBuf);
 
     u8g2.sendBuffer();
 }
