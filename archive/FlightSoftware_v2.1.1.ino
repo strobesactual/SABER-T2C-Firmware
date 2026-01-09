@@ -1,5 +1,5 @@
-#include "UpdatedLoRaBoards.h"
-#include "GeoFenceData.h"
+#include "legacy/UpdatedLoRaBoards.h"
+#include "legacy/GeoFenceData.h"
 #include <TinyGPS++.h>
 #include <Adafruit_BME280.h>
 
