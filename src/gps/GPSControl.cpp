@@ -1,44 +1,75 @@
+// src/gps/GPSControl.cpp
+
 #include <Arduino.h>
+#include <HardwareSerial.h>
 #include "gps/GPSControl.h"
-#include "board/Board_TBeamS3.h"
 
-static HardwareSerial GPSSerial(1);  // UART1
+static HardwareSerial GPSSerial(1);
 
-// T-Beam S3 Supreme GNSS UART pins
-static const int GPS_RX_PIN = 44;    // ESP32 RX <- GNSS TX
-static const int GPS_TX_PIN = 43;    // ESP32 TX -> GNSS RX
+// From schematic:
+// ESP GPIO9  = GPS_RX  (ESP RX  <- GNSS TXD)
+// ESP GPIO8  = GPS_TX  (ESP TX  -> GNSS RXD)
+// ESP GPIO6  = GPS_WAKEUP (to L76K WAKE_UP)
+static const int GPS_RX_PIN   = 9;
+static const int GPS_TX_PIN   = 8;
+static const int GPS_WAKE_PIN = 6;
+
 static const uint32_t GPS_BAUD = 9600;
 
-static uint32_t lastDbgMs = 0;
+// Stats / throttling
 static uint32_t totalBytes = 0;
+static uint32_t lastPrintMs = 0;
+
+// Line buffer for throttled output
+static char lineBuf[128];
+static size_t lineLen = 0;
 
 void GPSControl::begin()
 {
   Serial.println("[GPS] begin()");
 
-  // Ensure GNSS rail is on (safe if already enabled)
-  if (Board_TBeamS3::pmuOk()) {
-    Board_TBeamS3::enableGnss();
-  } else {
-    Serial.println("[GPS] WARN: PMU not OK; GNSS may be unpowered");
-  }
+  // Wake GPS and keep it awake
+  pinMode(GPS_WAKE_PIN, OUTPUT);
+  digitalWrite(GPS_WAKE_PIN, HIGH);
+  delay(200);
+  Serial.println("[GPS] WAKE=HIGH");
 
+  // UART init
+  GPSSerial.setRxBufferSize(4096);
+  GPSSerial.end();
+  delay(50);
   GPSSerial.begin(GPS_BAUD, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
-  Serial.printf("[GPS] UART1 started @ %lu (RX=%d TX=%d)\n",
-                (unsigned long)GPS_BAUD, GPS_RX_PIN, GPS_TX_PIN);
+
+  Serial.printf("[GPS] UART1 @%lu RX=%d TX=%d\n",
+                (unsigned long)GPS_BAUD,
+                GPS_RX_PIN,
+                GPS_TX_PIN);
 }
 
 void GPSControl::poll()
 {
-  while (GPSSerial.available()) {
-    char c = (char)GPSSerial.read();
-    totalBytes++;
-    Serial.write(c); // raw NMEA passthrough
-  }
-
   const uint32_t now = millis();
-  if (now - lastDbgMs >= 1000) {
-    lastDbgMs = now;
-    Serial.printf("[GPS] bytes=%lu\n", (unsigned long)totalBytes);
+
+  while (GPSSerial.available()) {
+    const char c = (char)GPSSerial.read();
+    totalBytes++;
+
+    // Build NMEA line
+    if (c == '\n') {
+      lineBuf[lineLen] = '\0';
+
+      // Print at most once per second
+      if (now - lastPrintMs >= 1000) {
+        Serial.printf("[GPS] %s\n", lineBuf);
+        lastPrintMs = now;
+      }
+
+      lineLen = 0;
+    }
+    else if (c != '\r') {
+      if (lineLen < sizeof(lineBuf) - 1) {
+        lineBuf[lineLen++] = c;
+      }
+    }
   }
 }

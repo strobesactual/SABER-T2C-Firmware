@@ -4,6 +4,8 @@
 #include "ui/PortalServer.h"
 #include "display/display.h"
 #include "gps/GPSControl.h"
+#include "satcom/SatCom.h"
+#include <Wire.h>
 
 // ---------------- Boot / UI state ----------------
 enum class Screen { BOOT, STATUS };
@@ -28,11 +30,23 @@ static void setBoot(uint8_t pct) {
 void setup() {
   // NOTE: Keep Serial first so you can see early boot logs.
   Serial.begin(115200);
-  delay(1500); // give USB-serial time to enumerate on Mac
-  Serial.println("[BOOT] setup start");
+  delay(1500);
+
+  // init the shared I2C bus used by OLED + BME
+  Wire.begin(17, 18);
+  Wire.setClock(400000);
+
+
+  uint32_t t0 = millis();
+  while (!Serial && (millis() - t0) < 3000) { delay(10); }  // wait for USB CDC
+  delay(200);
+  Serial.println("[BOOT] setup start (serial ready)");
+  
 
   // EARLY BOARD INIT (PMU / rails) - should be first dependency init
   Board_TBeamS3::earlyBegin();  // <-- FIRST!!!
+  SatCom::begin();
+  SatCom::getIdAndPrint();   // <-- ADD THIS
 
   // ---------------- Optional: GPS bring-up (keep, but if it spams / blocks, comment it) ----------------
   GPSControl::begin();
@@ -72,6 +86,9 @@ void loop() {
     Serial.println("[BOOT] loop alive");
   }
 
+  // ---------------- SATCOM ----------------
+  SatCom::poll();
+  
   // ---------------- Optional: Portal server servicing ----------------
   // PortalServer::loop();
 
