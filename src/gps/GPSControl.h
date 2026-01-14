@@ -5,4 +5,10 @@
 namespace GPSControl {
   void begin();
   void poll();
+  bool hasFix();
+  float latitude();
+  float longitude();
+  float altitudeMeters();
+  uint32_t timeValue();
+  uint8_t satellites();
 }

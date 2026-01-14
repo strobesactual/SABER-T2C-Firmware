@@ -35,6 +35,20 @@
         <p class="muted">
           Timed Termination defines when the system will automatically terminate.
         </p>
+        <div class="mission-status">
+          <div class="status-row">
+            <span class="status-label">Callsign</span>
+            <span id="currentCallsign" class="status-value">--</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">GPS Lat</span>
+            <span id="currentLat" class="status-value">--</span>
+          </div>
+          <div class="status-row">
+            <span class="status-label">GPS Lon</span>
+            <span id="currentLon" class="status-value">--</span>
+          </div>
+        </div>
       </div>
 
       <!-- Right form column -->
@@ -65,11 +79,11 @@
           </div>
         </div>
 
-        <!-- Geofencing -->
-        <div class="mission-section-title">Geofencing coordinates</div>
+        <!-- Geofencing: Stay In -->
+        <div class="mission-section-title">Geofencing: Stay In</div>
         <p class="muted">
-          Enter up to ten coordinates to define the operating area of the balloon.
-          Once the balloon leaves this box, termination will be commanded.
+          Enter up to ten coordinates to define the stay-in operating area.
+          Leaving this area will trigger a violation.
         </p>
 
         <div class="coord-pair">
@@ -171,6 +185,191 @@
           <div class="coord-row">
             <label for="gf_lon_10">Longitude</label>
             <input id="gf_lon_10" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+        </div>
+
+        <!-- Geofencing: Keep Out -->
+        <div class="mission-section-title">Geofencing: Keep Out</div>
+        <p class="muted">
+          Enter up to ten coordinates to define a keep-out area.
+          Entering this area will trigger a violation.
+        </p>
+
+        <div class="coord-pair">
+          <div class="coord-row">
+            <span class="coord-index">1</span>
+            <label for="ko_lat_1">Latitude</label>
+            <input id="ko_lat_1" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="coord-row">
+            <label for="ko_lon_1">Longitude</label>
+            <input id="ko_lon_1" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="coord-row">
+            <span class="coord-index">2</span>
+            <label for="ko_lat_2">Latitude</label>
+            <input id="ko_lat_2" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="coord-row">
+            <label for="ko_lon_2">Longitude</label>
+            <input id="ko_lon_2" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="coord-row">
+            <span class="coord-index">3</span>
+            <label for="ko_lat_3">Latitude</label>
+            <input id="ko_lat_3" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="coord-row">
+            <label for="ko_lon_3">Longitude</label>
+            <input id="ko_lon_3" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="coord-row">
+            <span class="coord-index">4</span>
+            <label for="ko_lat_4">Latitude</label>
+            <input id="ko_lat_4" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="coord-row">
+            <label for="ko_lon_4">Longitude</label>
+            <input id="ko_lon_4" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="coord-row">
+            <span class="coord-index">5</span>
+            <label for="ko_lat_5">Latitude</label>
+            <input id="ko_lat_5" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="coord-row">
+            <label for="ko_lon_5">Longitude</label>
+            <input id="ko_lon_5" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="coord-row">
+            <span class="coord-index">6</span>
+            <label for="ko_lat_6">Latitude</label>
+            <input id="ko_lat_6" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="coord-row">
+            <label for="ko_lon_6">Longitude</label>
+            <input id="ko_lon_6" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="coord-row">
+            <span class="coord-index">7</span>
+            <label for="ko_lat_7">Latitude</label>
+            <input id="ko_lat_7" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="coord-row">
+            <label for="ko_lon_7">Longitude</label>
+            <input id="ko_lon_7" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="coord-row">
+            <span class="coord-index">8</span>
+            <label for="ko_lat_8">Latitude</label>
+            <input id="ko_lat_8" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="coord-row">
+            <label for="ko_lon_8">Longitude</label>
+            <input id="ko_lon_8" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="coord-row">
+            <span class="coord-index">9</span>
+            <label for="ko_lat_9">Latitude</label>
+            <input id="ko_lat_9" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="coord-row">
+            <label for="ko_lon_9">Longitude</label>
+            <input id="ko_lon_9" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="coord-row">
+            <span class="coord-index">10</span>
+            <label for="ko_lat_10">Latitude</label>
+            <input id="ko_lat_10" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="coord-row">
+            <label for="ko_lon_10">Longitude</label>
+            <input id="ko_lon_10" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+        </div>
+
+        <!-- Geofencing: Shall-Not-Pass Lines -->
+        <div class="mission-section-title">Geofencing: Shall-Not-Pass Lines</div>
+        <p class="muted">
+          Define line rules using a point and axis. Any crossing is a violation.
+        </p>
+
+        <div class="line-grid">
+          <div class="line-row">
+            <span class="coord-index">1</span>
+            <label for="line_axis_1">Axis</label>
+            <select id="line_axis_1">
+              <option value="N/S">N/S</option>
+              <option value="E/W">E/W</option>
+            </select>
+          </div>
+          <div class="line-row">
+            <label for="line_lat_1">Latitude</label>
+            <input id="line_lat_1" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="line-row">
+            <label for="line_lon_1">Longitude</label>
+            <input id="line_lon_1" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="line-row">
+            <span class="coord-index">2</span>
+            <label for="line_axis_2">Axis</label>
+            <select id="line_axis_2">
+              <option value="N/S">N/S</option>
+              <option value="E/W">E/W</option>
+            </select>
+          </div>
+          <div class="line-row">
+            <label for="line_lat_2">Latitude</label>
+            <input id="line_lat_2" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="line-row">
+            <label for="line_lon_2">Longitude</label>
+            <input id="line_lon_2" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="line-row">
+            <span class="coord-index">3</span>
+            <label for="line_axis_3">Axis</label>
+            <select id="line_axis_3">
+              <option value="N/S">N/S</option>
+              <option value="E/W">E/W</option>
+            </select>
+          </div>
+          <div class="line-row">
+            <label for="line_lat_3">Latitude</label>
+            <input id="line_lat_3" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="line-row">
+            <label for="line_lon_3">Longitude</label>
+            <input id="line_lon_3" type="number" step="0.000001" placeholder="-97.800000" />
+          </div>
+
+          <div class="line-row">
+            <span class="coord-index">4</span>
+            <label for="line_axis_4">Axis</label>
+            <select id="line_axis_4">
+              <option value="N/S">N/S</option>
+              <option value="E/W">E/W</option>
+            </select>
+          </div>
+          <div class="line-row">
+            <label for="line_lat_4">Latitude</label>
+            <input id="line_lat_4" type="number" step="0.000001" placeholder="30.350000" />
+          </div>
+          <div class="line-row">
+            <label for="line_lon_4">Longitude</label>
+            <input id="line_lon_4" type="number" step="0.000001" placeholder="-97.800000" />
           </div>
         </div>
 

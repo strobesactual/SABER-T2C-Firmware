@@ -6,6 +6,12 @@ async function apiGetConfig() {
   return await r.json();
 }
 
+async function apiGetStatus() {
+  const r = await fetch("/api/status", { cache: "no-store" });
+  if (!r.ok) throw new Error(`GET /api/status failed: ${r.status}`);
+  return await r.json();
+}
+
 async function apiSaveConfig(obj) {
   const r = await fetch("/api/config", {
     method: "POST",
@@ -60,6 +66,26 @@ function refreshStatus(msg, isError = false) {
   el.style.background = isError ? "#dc2626" : "#16a34a";
 }
 
+function setGpsFields(status) {
+  if (!status?.gpsFix) {
+    setText("lat", "");
+    setText("lon", "");
+    setText("alt_m", "");
+    setText("alt_ft", "");
+    return;
+  }
+
+  const lat = Number(status.lat);
+  const lon = Number(status.lon);
+  const altM = Number(status.alt_m);
+  const altFt = altM * 3.28084;
+
+  setText("lat", Number.isFinite(lat) ? lat.toFixed(6) : "");
+  setText("lon", Number.isFinite(lon) ? lon.toFixed(6) : "");
+  setText("alt_m", Number.isFinite(altM) ? altM.toFixed(1) : "");
+  setText("alt_ft", Number.isFinite(altFt) ? altFt.toFixed(1) : "");
+}
+
 /* ---------- field maps (ONLY what exists in HTML) ---------- */
 
 const FIELD_MAP_TEXT = {
@@ -105,6 +131,13 @@ async function onLoad() {
     refreshStatus("Loaded");
   } catch (e) {
     refreshStatus("Load failed", true);
+  }
+
+  try {
+    const status = await apiGetStatus();
+    setGpsFields(status);
+  } catch (e) {
+    setGpsFields({ gpsFix: false });
   }
 
   const saveBtn = $("saveBtn");

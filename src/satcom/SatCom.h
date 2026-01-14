@@ -9,9 +9,11 @@ public:
 
   // Legacy raw payload exercise (0x27 frame)
   static void ping();
+  static void sendRawFrame(const uint8_t *frame, size_t len);
 
   // Documented command: Get ID (0x01)
   static void getIdAndPrint();
+  static bool getId(uint32_t &id);
 
   // Generic documented command helper (prints response as hex)
   static void queryAndHexDump(uint8_t cmd,

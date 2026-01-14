@@ -31,6 +31,11 @@ bool Board_TBeamS3::pmuOk()
   return s_pmu_ok;
 }
 
+XPowersAXP2101 *Board_TBeamS3::pmu()
+{
+  return s_pmu_ok ? &s_pmu : nullptr;
+}
+
 // -----------------------------------------------------------------------------
 // GNSS power control
 // -----------------------------------------------------------------------------

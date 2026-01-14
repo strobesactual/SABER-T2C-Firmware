@@ -6,9 +6,11 @@
 #include <ArduinoJson.h>
 
 #include "core/ConfigStore.h"
+#include "gps/GPSControl.h"
 
 static const char* AP_SSID = "SABER-T2C";
 static const char* AP_PASS = "saber1234";
+static const char* GEOFENCE_PATH = "/geofence.json";
 
 static AsyncWebServer server(80);
 static ConfigStore store("/config.json");
@@ -20,6 +22,32 @@ static void fillDefaults(JsonDocument& doc) {
   doc["balloonType"] = "";
   doc["note"] = "";
   doc["autoErase"] = false;
+}
+
+static void fillGeofenceDefaults(JsonDocument& doc) {
+  doc.clear();
+  doc.createNestedArray("keep_out");
+  doc.createNestedArray("stay_in");
+  doc.createNestedArray("lines");
+}
+
+static bool loadJsonFile(const char* path, JsonDocument& doc) {
+  File f = LittleFS.open(path, "r");
+  if (!f) return false;
+  DeserializationError err = deserializeJson(doc, f);
+  f.close();
+  return !err;
+}
+
+static bool saveJsonFile(const char* path, const JsonDocument& doc) {
+  File f = LittleFS.open(path, "w");
+  if (!f) return false;
+  if (serializeJson(doc, f) == 0) {
+    f.close();
+    return false;
+  }
+  f.close();
+  return true;
 }
 
 namespace PortalServer {
@@ -39,6 +67,13 @@ void begin() {
     // continue anyway; portal can still run
   }
 
+  // Ensure geofence file exists with defaults if missing/corrupt
+  if (!LittleFS.exists(GEOFENCE_PATH)) {
+    StaticJsonDocument<256> geoDoc;
+    fillGeofenceDefaults(geoDoc);
+    saveJsonFile(GEOFENCE_PATH, geoDoc);
+  }
+
   WiFi.mode(WIFI_AP);
   WiFi.softAP(AP_SSID, AP_PASS);
 
@@ -56,6 +91,38 @@ void begin() {
       fillDefaults(doc);
     }
 
+    String out;
+    serializeJson(doc, out);
+    request->send(200, "application/json", out);
+  });
+
+  // GET current status (callsign + GPS)
+  server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
+    StaticJsonDocument<512> doc;
+    StaticJsonDocument<512> cfg;
+
+    if (!store.load(cfg)) {
+      fillDefaults(cfg);
+    }
+
+    doc["callsign"] = cfg["callsign"] | "";
+    doc["gpsFix"] = GPSControl::hasFix();
+    doc["lat"] = GPSControl::latitude();
+    doc["lon"] = GPSControl::longitude();
+    doc["alt_m"] = GPSControl::altitudeMeters();
+    doc["sats"] = GPSControl::satellites();
+
+    String out;
+    serializeJson(doc, out);
+    request->send(200, "application/json", out);
+  });
+
+  // GET current geofence config
+  server.on("/api/geofence", HTTP_GET, [](AsyncWebServerRequest *request) {
+    StaticJsonDocument<2048> doc;
+    if (!loadJsonFile(GEOFENCE_PATH, doc)) {
+      fillGeofenceDefaults(doc);
+    }
     String out;
     serializeJson(doc, out);
     request->send(200, "application/json", out);
@@ -97,6 +164,41 @@ void begin() {
       doc["autoErase"] = doc["autoErase"].as<bool>();
 
       if (!store.save(doc)) {
+        request->send(500, "application/json", "{\"ok\":false,\"error\":\"save_failed\"}");
+        return;
+      }
+
+      request->send(200, "application/json", "{\"ok\":true}");
+    }
+  );
+
+  // POST new geofence config
+  server.on(
+    "/api/geofence",
+    HTTP_POST,
+    [](AsyncWebServerRequest *request) {},
+    NULL,
+    [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+      static String body;
+
+      if (index == 0) body = "";
+      body += String((char*)data).substring(0, len);
+
+      if (index + len != total) return;
+
+      StaticJsonDocument<2048> doc;
+      DeserializationError err = deserializeJson(doc, body);
+
+      if (err) {
+        request->send(400, "application/json", "{\"ok\":false,\"error\":\"invalid_json\"}");
+        return;
+      }
+
+      if (!doc.containsKey("keep_out")) doc.createNestedArray("keep_out");
+      if (!doc.containsKey("stay_in")) doc.createNestedArray("stay_in");
+      if (!doc.containsKey("lines")) doc.createNestedArray("lines");
+
+      if (!saveJsonFile(GEOFENCE_PATH, doc)) {
         request->send(500, "application/json", "{\"ok\":false,\"error\":\"save_failed\"}");
         return;
       }

@@ -19,8 +19,15 @@ static const char *callsign = "UNKNOWN";
 static bool gpsFix = false;
 static uint8_t gpsSats = 0;
 static const char *satcom = "INIT";
+static char satcomBuf[20] = "INIT";
 static const char *lora = "INIT";
 static uint8_t batteryPct = 0;
+static uint8_t geoCount = 0;
+static bool geoOk = true;
+static const char *flightState = "GROUND";
+static char flightBuf[12] = "GROUND";
+static const char *holdState = "HOLD";
+static char holdBuf[12] = "HOLD";
 
 void display_init()
 {
@@ -88,12 +95,16 @@ void display_show_status()
 
     u8g2.drawStr(xLabel, 12, "ID:");
     u8g2.drawStr(xVal,   12, callsign);
+    int holdWidth = u8g2.getStrWidth(holdState);
+    u8g2.drawStr(128 - holdWidth, 12, holdState);
 
     u8g2.drawStr(xLabel, 24, "GPS:");
     char gpsBuf[16];
     snprintf(gpsBuf, sizeof(gpsBuf), "%s %u",
              gpsFix ? "Good" : "No Fix", gpsSats);
     u8g2.drawStr(xVal, 24, gpsBuf);
+    int stateWidth = u8g2.getStrWidth(flightState);
+    u8g2.drawStr(128 - stateWidth, 24, flightState);
 
     u8g2.drawStr(xLabel, 36, "SATCOM:");
     u8g2.drawStr(xVal,   36, satcom);
@@ -106,12 +117,35 @@ void display_show_status()
     snprintf(batBuf, sizeof(batBuf), "%u%%", batteryPct);
     u8g2.drawStr(xVal, 60, batBuf);
 
+    char geoBuf[16];
+    snprintf(geoBuf, sizeof(geoBuf), "GEO: %u %c", geoCount, geoOk ? '+' : '-');
+    int geoWidth = u8g2.getStrWidth(geoBuf);
+    u8g2.drawStr(128 - geoWidth, 60, geoBuf);
+
     u8g2.sendBuffer();
 }
 
 // ---- setters ----
 void display_set_callsign(const char *cs) { callsign = cs; }
 void display_set_gps(bool fix, uint8_t sats) { gpsFix = fix; gpsSats = sats; }
-void display_set_satcom(const char *s) { satcom = s; }
+void display_set_satcom(const char *s) {
+    if (!s) s = "";
+    snprintf(satcomBuf, sizeof(satcomBuf), "%s", s);
+    satcom = satcomBuf;
+}
 void display_set_lora(const char *s) { lora = s; }
 void display_set_battery(uint8_t p) { batteryPct = p; }
+void display_set_geo(uint8_t count, bool ok) { geoCount = count; geoOk = ok; }
+void display_set_flight_state(const char *state) {
+    if (!state) state = "";
+    snprintf(flightBuf, sizeof(flightBuf), "%s", state);
+    for (size_t i = 0; flightBuf[i] != '\0'; ++i) {
+        flightBuf[i] = static_cast<char>(toupper(flightBuf[i]));
+    }
+    flightState = flightBuf;
+}
+void display_set_hold_state(const char *state) {
+    if (!state) state = "";
+    snprintf(holdBuf, sizeof(holdBuf), "%s", state);
+    holdState = holdBuf;
+}

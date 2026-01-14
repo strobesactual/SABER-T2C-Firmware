@@ -109,8 +109,7 @@ static uint16_t crcSmartOne(const uint8_t *data, size_t len)
 }
 
 // -------- Documented command sender (AA LEN CMD ... CRC) --------
-// NOTE: For SmartOne documented commands, do NOT pulse HS low during write.
-// Also: give it extra settle time after wake.
+// SmartOne C spec: pull HS LOW, wait 2-3 ms, send cmd, then raise HS HIGH.
 static void sendCmd(uint8_t cmd, const uint8_t *payload, size_t payloadLen)
 {
   uint8_t msg[64];
@@ -128,19 +127,18 @@ static void sendCmd(uint8_t cmd, const uint8_t *payload, size_t payloadLen)
 
   const uint16_t crc = crcSmartOne(msg, headerLen + payloadLen);
 
-  // Keep your current ordering (HI then LO)
-  msg[headerLen + payloadLen + 0] = (uint8_t)((crc >> 8) & 0xFF);
-  msg[headerLen + payloadLen + 1] = (uint8_t)(crc & 0xFF);
+  // Spec order: CRC low byte, then high byte
+  msg[headerLen + payloadLen + 0] = (uint8_t)(crc & 0xFF);
+  msg[headerLen + payloadLen + 1] = (uint8_t)((crc >> 8) & 0xFF);
 
   wakeSat();
-  delay(150); // <-- KEY: settle time after wake for command mode
-
-  // IMPORTANT: keep HS HIGH during documented command send
-  digitalWrite(SAT_HS_PIN, HIGH);
   delay(2);
 
+  digitalWrite(SAT_HS_PIN, LOW);
+  delay(3);
   Serial2.write(msg, totalLen);
   Serial2.flush();
+  digitalWrite(SAT_HS_PIN, HIGH);
 
   totalTx += totalLen;
 
@@ -234,6 +232,21 @@ void SatCom::ping()
   drainForMs(1000, true);
 }
 
+void SatCom::sendRawFrame(const uint8_t *frame, size_t len)
+{
+  if (!frame || len == 0) return;
+
+  wakeSat();
+  digitalWrite(SAT_HS_PIN, LOW);
+  delay(3);
+  Serial2.write(frame, len);
+  Serial2.flush();
+  digitalWrite(SAT_HS_PIN, HIGH);
+
+  totalTx += len;
+  Serial.printf("[SAT] sent raw frame len=%u\n", (unsigned)len);
+}
+
 void SatCom::getIdAndPrint()
 {
   Serial.println("[SAT] getId (0x01) ...");
@@ -281,6 +294,37 @@ void SatCom::getIdAndPrint()
   }
 
   Serial.println("[SAT] getId: giving up after retries");
+}
+
+bool SatCom::getId(uint32_t &id)
+{
+  for (int attempt = 1; attempt <= 3; attempt++) {
+    sendCmd(0x01, nullptr, 0);
+
+    uint8_t rx[64];
+    size_t n = 0;
+    if (!readPacket(rx, sizeof(rx), n, 1500)) {
+      delay(200);
+      continue;
+    }
+
+    const uint8_t cmd = rx[2];
+    if (cmd == 0xFF) {
+      delay(400);
+      continue;
+    }
+
+    if (cmd == 0x01 && rx[1] == 0x09) {
+      id =
+        ((uint32_t)rx[3] << 24) |
+        ((uint32_t)rx[4] << 16) |
+        ((uint32_t)rx[5] <<  8) |
+        ((uint32_t)rx[6] <<  0);
+      return true;
+    }
+    return false;
+  }
+  return false;
 }
 
 void SatCom::queryAndHexDump(uint8_t cmd, const uint8_t *payload, size_t payloadLen, uint32_t timeoutMs)

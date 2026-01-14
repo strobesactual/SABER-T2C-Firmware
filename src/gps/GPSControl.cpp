@@ -2,7 +2,9 @@
 
 #include <Arduino.h>
 #include <HardwareSerial.h>
+#include <TinyGPS++.h>
 #include "gps/GPSControl.h"
+#include "display/display.h"
 
 static HardwareSerial GPSSerial(1);
 
@@ -23,6 +25,14 @@ static uint32_t lastPrintMs = 0;
 // Line buffer for throttled output
 static char lineBuf[128];
 static size_t lineLen = 0;
+
+static TinyGPSPlus gps;
+static float lastLat = 0.0f;
+static float lastLng = 0.0f;
+static float lastAlt = NAN;
+static uint32_t lastTime = 0;
+static bool lastFix = false;
+static uint8_t lastSats = 0;
 
 void GPSControl::begin()
 {
@@ -53,6 +63,7 @@ void GPSControl::poll()
   while (GPSSerial.available()) {
     const char c = (char)GPSSerial.read();
     totalBytes++;
+    gps.encode(c);
 
     // Build NMEA line
     if (c == '\n') {
@@ -72,4 +83,27 @@ void GPSControl::poll()
       }
     }
   }
+
+  if (gps.location.isUpdated()) {
+    lastLat = gps.location.lat();
+    lastLng = gps.location.lng();
+  }
+  if (gps.altitude.isUpdated()) {
+    lastAlt = gps.altitude.meters();
+  }
+  if (gps.time.isUpdated()) {
+    lastTime = gps.time.value();
+  }
+  lastFix = gps.location.isValid();
+  if (gps.satellites.isValid()) {
+    lastSats = (uint8_t)gps.satellites.value();
+  }
+  display_set_gps(lastFix, lastSats);
 }
+
+bool GPSControl::hasFix() { return lastFix; }
+float GPSControl::latitude() { return lastLat; }
+float GPSControl::longitude() { return lastLng; }
+float GPSControl::altitudeMeters() { return lastAlt; }
+uint32_t GPSControl::timeValue() { return lastTime; }
+uint8_t GPSControl::satellites() { return lastSats; }

@@ -5,7 +5,14 @@
 #include "display/display.h"
 #include "gps/GPSControl.h"
 #include "satcom/SatCom.h"
+#include "message/MessageCodec.h"
+#include "sensors/BME280.h"
+#include "sensors/PMU_AXP2101.h"
+#include "geofence/GeoFence.h"
+#include "termination/Termination.h"
+#include "core/ConfigStore.h"
 #include <Wire.h>
+#include <math.h>
 
 // ---------------- Boot / UI state ----------------
 enum class Screen { BOOT, STATUS };
@@ -15,8 +22,14 @@ static uint8_t  bootPct = 0;
 static bool     bootDone = false;
 static uint32_t bootStartMs = 0;
 static uint32_t lastStatusDrawMs = 0;
+static uint32_t lastSatSendMs = 0;
+static bool satIdPrinted = false;
+static uint32_t lastSatIdQueryMs = 0;
+static uint32_t satId = 0;
 
 static constexpr uint32_t MIN_BOOT_MS = 5000;
+static constexpr uint32_t SAT_SEND_INTERVAL_MS = 120000;
+static constexpr uint32_t STATUS_REFRESH_MS = 30000;
 
 // Helper: only redraw when % changes
 static void setBoot(uint8_t pct) {
@@ -47,6 +60,9 @@ void setup() {
   Board_TBeamS3::earlyBegin();  // <-- FIRST!!!
   SatCom::begin();
   SatCom::getIdAndPrint();   // <-- ADD THIS
+  BME280Sensor::begin();
+  PMU_AXP2101::begin();
+  GeoFence::begin();
 
   // ---------------- Optional: GPS bring-up (keep, but if it spams / blocks, comment it) ----------------
   GPSControl::begin();
@@ -61,6 +77,20 @@ void setup() {
   // ---------------- Display boot screen ----------------
   display_init();
   display_show_boot();
+  display_set_callsign("SR99");
+  display_set_satcom("INIT");
+  display_set_hold_state("HOLD");
+  display_set_flight_state("GROUND");
+  {
+    ConfigStore portalConfig("/config.json");
+    StaticJsonDocument<256> cfg;
+    if (portalConfig.begin() && portalConfig.load(cfg)) {
+      String callsign = cfg["callsign"] | String("SR99");
+      if (callsign.length() > 0) {
+        display_set_callsign(callsign.c_str());
+      }
+    }
+  }
 
   bootStartMs = millis();
 
@@ -126,8 +156,55 @@ void loop() {
   }
 
   // ---------------- STATUS ----------------
-  if (now - lastStatusDrawMs >= 1000) {
+  if (now - lastStatusDrawMs >= STATUS_REFRESH_MS) {
+    BME280Sensor::update();
+    PMU_AXP2101::update();
+    if (GPSControl::hasFix()) {
+      const bool violation = GeoFence::update(GPSControl::latitude(), GPSControl::longitude());
+      if (violation && !Termination::triggered() && GeoFence::violationCount() > 0) {
+        const GeoFence::Violation &v = GeoFence::violation(0);
+        Termination::trigger(v.detail.c_str());
+      }
+      display_set_geo((uint8_t)GeoFence::ruleCount(), !violation);
+    } else {
+      display_set_geo((uint8_t)GeoFence::ruleCount(), true);
+    }
+    const int battPct = PMU_AXP2101::batteryPercent();
+    if (battPct >= 0) {
+      display_set_battery(static_cast<uint8_t>(battPct));
+    }
+    display_set_gps(GPSControl::hasFix(), GPSControl::satellites());
     display_show_status();
     lastStatusDrawMs = now;
+  }
+
+  if (!satIdPrinted && (now - lastSatIdQueryMs >= 2000)) {
+    lastSatIdQueryMs = now;
+    if (SatCom::getId(satId)) {
+      char satBuf[20];
+      snprintf(satBuf, sizeof(satBuf), "GOOD %lu", (unsigned long)satId);
+      display_set_satcom(satBuf);
+      satIdPrinted = true;
+    } else {
+      display_set_satcom("INIT");
+    }
+  }
+
+  if (now - lastSatSendMs >= SAT_SEND_INTERVAL_MS) {
+    lastSatSendMs = now;
+    if (GPSControl::hasFix()) {
+      MessageCodec::Fields fields;
+      fields.time_value = GPSControl::timeValue();
+      fields.latitude = GPSControl::latitude();
+      fields.longitude = GPSControl::longitude();
+      fields.altitude_m = GPSControl::altitudeMeters();
+      fields.temp_k = BME280Sensor::temperatureC() + 273.15f;
+      fields.pressure_hpa = BME280Sensor::pressureHpa();
+
+      MessageCodec::EncodedMessage msg;
+      if (MessageCodec::encodeRaw27(fields, msg)) {
+        SatCom::sendRawFrame(msg.bytes, msg.len);
+      }
+    }
   }
 }
