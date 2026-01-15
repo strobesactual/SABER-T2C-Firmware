@@ -214,4 +214,5 @@
  .pio/libdeps/tbeam_supreme/ArduinoJson/src/ArduinoJson.h \
  .pio/libdeps/tbeam_supreme/ArduinoJson/src/ArduinoJson.hpp \
  .pio/libdeps/tbeam_supreme/ArduinoJson/src/ArduinoJson/Configuration.hpp \
- src/core/ConfigStore.h
+ src/core/ConfigStore.h src/core/SystemStatus.h src/gps/GPSControl.h \
+ src/satcom/SatCom.h

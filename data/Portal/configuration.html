@@ -18,7 +18,10 @@
       <a class="navlink" href="./active_mission.html">Active Mission</a>
     </nav>
 
-    <button id="saveBtn" class="btn btn-primary">Save</button>
+    <div class="topbar-actions">
+      <span id="saveFlag" class="save-flag" aria-live="polite"></span>
+      <button id="saveBtn" class="btn btn-primary">Save</button>
+    </div>
   </header>
 
   <main class="container">
@@ -34,22 +37,24 @@
           <p>Add the callsign for this ballon, which will be displayed on the tracking page.</p>
           <p>Select the balloon type being flown.</p>
           <p>Confirm status is "Preflight".</p>
-          <p>Confirm GPS data is accurate.</p>
         </div>
 
         <div class="card-right">
           <div class="field">
             <label for="callsign">Balloon Callsign</label>
-            <input id="callsign"
-              class="callsign-field"
-              type="text"
-              placeholder="SABER_11"
-              maxlength="25" />
+            <div class="callsign-row">
+              <input id="callsign"
+                class="box-medium box-editable"
+                type="text"
+                placeholder="SR123"
+                maxlength="6" />
+              <span class="callsign-limit">Limit 6 characters</span>
+            </div>
           </div>
 
           <div class="field">
             <label for="balloonType">Balloon Type</label>
-            <select id="balloonType" class="balloon-type-field">
+            <select id="balloonType" class="box-medium box-editable">
               <option value="SABER-70-100">SABER 70-100</option>
               <option value="SABER-60-100">SABER 60-100</option>
               <option value="SABER-50-100">SABER 50-100</option>
@@ -77,7 +82,7 @@
 
           <div class="field">
             <label for="note">Note</label>
-            <input id="note" type="text" placeholder="Free entry…" />
+            <input id="note" class="box-long box-editable" type="text" placeholder="Free entry…" />
           </div>
 
           <!-- NATO symbol (display only) -->
@@ -97,16 +102,67 @@
             </label>
             <span>Auto-erase after termination</span>
           </div>
+
+          <div class="toggle">
+            <label class="switch">
+              <input id="satcomMessages" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+            <span>I have verified SATCOM messages have been received</span>
+          </div>
         </div>
       </section>
 
-      <!-- Box 2: GPS Data -->
+      <!-- Box 2: Mission -->
+      <section class="card gps-card mission-card">
+        <div class="gps-card-header">
+          <img class="gps-icon" src="./assets/mission_icon.png" alt="Mission" />
+          <div class="gps-card-title">
+            <h2>Mission</h2>
+            <p>Live mission status</p>
+          </div>
+        </div>
+
+        <div class="card-right">
+          <div class="mission-inline-row">
+            <div class="inline-field">
+              <label>Status</label>
+              <div id="missionStatus" class="box-short box-display box-center">HOLD</div>
+            </div>
+
+            <div class="inline-field">
+              <label>Battery</label>
+              <div id="missionBattery" class="box-short box-display box-center">--</div>
+            </div>
+
+            <div class="inline-field">
+              <label>LoRa</label>
+              <div id="missionLora" class="box-short box-display box-center">N/A</div>
+            </div>
+          </div>
+
+          <div class="field termination-block">
+            <div class="mission-section-title">Termination</div>
+            <div class="termination-row">
+              <div id="missionGeofenceCount" class="termination-box box-narrow box-display">00</div>
+              <span>Geofence Restrictions</span>
+            </div>
+            <div class="termination-row">
+              <div id="missionTerminationSeconds" class="termination-box box-narrow box-display">0000</div>
+              <span>Seconds until termination</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Box 3: Satellite Data -->
       <section class="card gps-card">
         <div class="gps-card-header">
           <img class="gps-icon" src="./assets/gps_icon.png" alt="GPS" />
           <div class="gps-card-title">
-            <h2>GPS Data</h2>
-            <p>Current GPS data</p>
+            <h2>Satellite Data</h2>
+            <p>Live GPS + SATCOM telemetry from the avionics system.</p>
+            <p>Confirm the data is accurate before flight.</p>
           </div>
         </div>
 
@@ -114,44 +170,48 @@
           <div class="field tt-row">
             <div>
               <label for="lat">Latitude</label>
-              <input id="lat" type="text" placeholder="30.350000" readonly />
+              <input id="lat" class="box-short box-display" type="text" placeholder="30.350000" readonly />
             </div>
             <div>
               <label for="lon">Longitude</label>
-              <input id="lon" type="text" placeholder="-97.800000" readonly />
+              <input id="lon" class="box-short box-display" type="text" placeholder="-97.800000" readonly />
             </div>
             <div>
               <label for="alt_m">Altitude (m)</label>
-              <input id="alt_m" type="text" placeholder="10600" readonly />
+              <input id="alt_m" class="box-short box-display" type="text" placeholder="10600" readonly />
             </div>
             <div>
               <label for="alt_ft">Altitude (ft)</label>
-              <input id="alt_ft" type="text" placeholder="34777" readonly />
+              <input id="alt_ft" class="box-short box-display" type="text" placeholder="34777" readonly />
             </div>
           </div>
 
           <div class="field tt-row">
             <div>
-              <label for="gpsTime">GPS Time</label>
-              <input id="gpsTime" type="text" placeholder="07:00 Z" readonly />
+              <label for="gpsFixText">GPS Fix</label>
+              <input id="gpsFixText" class="box-short box-display" type="text" placeholder="No Fix" readonly />
             </div>
             <div>
-              <label for="gpsDate">GPS Date</label>
-              <input id="gpsDate" type="text" placeholder="02 Jan 2026" readonly />
+              <label for="gpsSats">Satellites</label>
+              <input id="gpsSats" class="box-short box-display" type="text" placeholder="0" readonly />
+            </div>
+            <div>
+              <label for="gpsFlight">Mode</label>
+              <input id="gpsFlight" class="box-short box-display" type="text" placeholder="GROUND" readonly />
             </div>
           </div>
 
-          <div class="field">
-            <label for="globalstarId">Globalstar ID</label>
-            <input id="globalstarId" class="globalstar-id" type="text" placeholder="GS-XXXXXXXX" readonly />
-          </div>
-
-          <div class="field status-row">
-            <label>Status</label>
-            <div id="statusPill" class="status-pill status-preflight">
-              Preflight
+          <div class="field tt-row">
+            <div>
+              <label for="satcomState">SATCOM State</label>
+              <input id="satcomState" class="box-short box-display" type="text" placeholder="INIT" readonly />
+            </div>
+            <div>
+              <label for="globalstarId">SATCOM ID</label>
+              <input id="globalstarId" class="globalstar-id box-short box-display" type="text" placeholder="XXXXXXXX" readonly />
             </div>
           </div>
+
         </div>
       </section>
 

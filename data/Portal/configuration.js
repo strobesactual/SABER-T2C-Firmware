@@ -66,14 +66,57 @@ function refreshStatus(msg, isError = false) {
   el.style.background = isError ? "#dc2626" : "#16a34a";
 }
 
-function setGpsFields(status) {
-  if (!status?.gpsFix) {
-    setText("lat", "");
-    setText("lon", "");
-    setText("alt_m", "");
-    setText("alt_ft", "");
-    return;
+function setGpsStatusPill(gpsFix, sats) {
+  const el = $("statusPill");
+  if (!el) return;
+  el.classList.remove("status-good", "status-nofix");
+  if (gpsFix) {
+    const count = Number(sats);
+    el.textContent = Number.isFinite(count) ? `Good ${count}` : "Good";
+    el.classList.add("status-good");
+  } else {
+    el.textContent = "No Fix";
+    el.classList.add("status-nofix");
   }
+}
+
+function showSaveFlag(msg, isError = false) {
+  const el = $("saveFlag");
+  if (!el) return;
+  el.textContent = msg;
+  el.style.background = isError ? "#dc2626" : "#16a34a";
+  el.classList.add("is-visible");
+  clearTimeout(el._hideTimer);
+  el._hideTimer = setTimeout(() => {
+    el.classList.remove("is-visible");
+  }, 2500);
+}
+
+function toggleStateBox(id, ok) {
+  const el = $(id);
+  if (!el) return;
+  el.classList.toggle("box-state-good", !!ok);
+  el.classList.toggle("box-state-bad", !ok);
+}
+
+function setGpsFields(status) {
+  const hasFix = !!status?.gpsFix;
+  const satCount = Number(status?.sats);
+  const satcomId = extractSatcomId(status);
+  const satcomState = satcomId ? "GOOD" : "INIT";
+  const flightRaw = (status?.flightState || "").toString().trim().toUpperCase();
+  const flightText = (flightRaw === "FLT" || flightRaw === "FLIGHT") ? "FLIGHT" : "GROUND";
+
+  setText("gpsFixText", hasFix ? "GOOD" : "NO FIX");
+  setText("gpsSats", Number.isFinite(satCount) ? satCount : "");
+  setText("satcomState", satcomState);
+  setText("globalstarId", satcomId);
+  setText("gpsFlight", flightText);
+  setMissionFields(status);
+
+  const satcomOk = satcomState === "GOOD";
+  toggleStateBox("gpsFixText", hasFix);
+  toggleStateBox("satcomState", satcomOk);
 
   const lat = Number(status.lat);
   const lon = Number(status.lon);
@@ -86,6 +129,47 @@ function setGpsFields(status) {
   setText("alt_ft", Number.isFinite(altFt) ? altFt.toFixed(1) : "");
 }
 
+function extractSatcomId(status) {
+  if (!status) return "";
+  const direct = status.globalstarId || status.satcomId || status.satId || "";
+  if (direct) return String(direct).trim();
+
+  const satcom = (status.satcom || status.satcomState || "").toString();
+  const match = satcom.match(/(\\d{4,})/);
+  return match ? match[1] : "";
+}
+
+function setMissionFields(status) {
+  const hold = (status?.holdState || "").toString().trim().toUpperCase();
+  const statusText = hold === "HOLD" ? "HOLD" : "READY";
+  const geoCount = Number(status?.geoCount);
+  const geoCountText = Number.isFinite(geoCount) ? geoCount : 0;
+  const lora = (status?.lora || "").toString().trim();
+  const batt = Number(status?.battery);
+  const battText = Number.isFinite(batt) && batt >= 0 ? `${batt}%` : "--";
+  const seconds = Number(status?.ttTotalSec);
+  const secondsText = Number.isFinite(seconds) ? String(seconds).padStart(4, "0") : "0000";
+
+  const statusEl = document.getElementById("missionStatus");
+  const loraEl = document.getElementById("missionLora");
+  const battEl = document.getElementById("missionBattery");
+  const geoEl = document.getElementById("missionGeofenceCount");
+  const secEl = document.getElementById("missionTerminationSeconds");
+
+  if (statusEl) {
+    statusEl.textContent = statusText.toUpperCase();
+    toggleStateBox("missionStatus", hold !== "HOLD");
+  }
+  if (loraEl) {
+    const ready = lora && lora.toUpperCase() !== "INIT";
+    loraEl.textContent = ready ? "READY" : "N/A";
+    toggleStateBox("missionLora", ready);
+  }
+  if (battEl) battEl.textContent = battText;
+  if (geoEl) geoEl.textContent = String(geoCountText).padStart(2, "0");
+  if (secEl) secEl.textContent = secondsText;
+}
+
 /* ---------- field maps (ONLY what exists in HTML) ---------- */
 
 const FIELD_MAP_TEXT = {
@@ -96,13 +180,18 @@ const FIELD_MAP_TEXT = {
 
 const FIELD_MAP_CHECK = {
   autoErase: "autoErase",
+  satcomMessages: "satcomMessages",
 };
 
 /* ---------- form helpers ---------- */
 
 function fillForm(cfg) {
   for (const [id, key] of Object.entries(FIELD_MAP_TEXT)) {
-    setText(id, cfg?.[key]);
+    let val = cfg?.[key];
+    if (key === "callsign" && (!val || String(val).trim() === "")) {
+      val = "NONE";
+    }
+    setText(id, val);
   }
   for (const [id, key] of Object.entries(FIELD_MAP_CHECK)) {
     setCheck(id, cfg?.[key]);
@@ -113,7 +202,11 @@ function readForm() {
   const out = {};
 
   for (const [id, key] of Object.entries(FIELD_MAP_TEXT)) {
-    out[key] = getText(id);
+    let val = getText(id);
+    if (key === "callsign") {
+      val = val.slice(0, 6);
+    }
+    out[key] = val;
   }
   for (const [id, key] of Object.entries(FIELD_MAP_CHECK)) {
     out[key] = getCheck(id);
@@ -128,9 +221,8 @@ async function onLoad() {
   try {
     const cfg = await apiGetConfig();
     fillForm(cfg);
-    refreshStatus("Loaded");
   } catch (e) {
-    refreshStatus("Load failed", true);
+    showSaveFlag("Load failed", true);
   }
 
   try {
@@ -140,6 +232,15 @@ async function onLoad() {
     setGpsFields({ gpsFix: false });
   }
 
+  setInterval(async () => {
+    try {
+      const status = await apiGetStatus();
+      setGpsFields(status);
+    } catch (e) {
+      setGpsFields({ gpsFix: false });
+    }
+  }, 2000);
+
   const saveBtn = $("saveBtn");
   if (saveBtn) {
     saveBtn.addEventListener("click", async (ev) => {
@@ -147,10 +248,13 @@ async function onLoad() {
       try {
         const data = readForm();
         const res = await apiSaveConfig(data);
-        if (res?.ok) refreshStatus("Saved");
-        else refreshStatus("Save failed", true);
+        if (res?.ok) {
+          showSaveFlag("Changes Saved");
+        } else {
+          showSaveFlag("Save failed", true);
+        }
       } catch (e) {
-        refreshStatus("Save failed", true);
+        showSaveFlag("Save failed", true);
       }
     });
   }

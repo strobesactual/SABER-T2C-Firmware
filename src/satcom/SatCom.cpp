@@ -12,6 +12,7 @@ static const uint32_t SAT_BAUD = 9600;
 
 static uint32_t totalRx = 0;
 static uint32_t totalTx = 0;
+static uint32_t lastIdValue = 0;
 
 static uint32_t lastPrintMs = 0;
 static uint32_t lastRxSnapshot = 0;
@@ -284,6 +285,7 @@ void SatCom::getIdAndPrint()
         ((uint32_t)rx[5] <<  8) |
         ((uint32_t)rx[6] <<  0);
 
+      lastIdValue = id;
       Serial.printf("[SAT] SmartOne ID (ESN int) = %lu (0x%08lX)\n",
                     (unsigned long)id, (unsigned long)id);
       return;
@@ -320,11 +322,17 @@ bool SatCom::getId(uint32_t &id)
         ((uint32_t)rx[4] << 16) |
         ((uint32_t)rx[5] <<  8) |
         ((uint32_t)rx[6] <<  0);
+      lastIdValue = id;
       return true;
     }
     return false;
   }
   return false;
+}
+
+uint32_t SatCom::lastId()
+{
+  return lastIdValue;
 }
 
 void SatCom::queryAndHexDump(uint8_t cmd, const uint8_t *payload, size_t payloadLen, uint32_t timeoutMs)

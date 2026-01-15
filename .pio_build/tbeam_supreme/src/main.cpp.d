@@ -182,6 +182,10 @@
  src/board/Board_TBeamS3.h src/ui/PortalServer.h src/display/display.h \
  src/gps/GPSControl.h src/satcom/SatCom.h src/message/MessageCodec.h \
  src/sensors/BME280.h src/sensors/PMU_AXP2101.h src/geofence/GeoFence.h \
- src/termination/Termination.h \
+ src/termination/Termination.h src/core/ConfigStore.h \
+ .pio/libdeps/tbeam_supreme/ArduinoJson/src/ArduinoJson.h \
+ .pio/libdeps/tbeam_supreme/ArduinoJson/src/ArduinoJson.hpp \
+ .pio/libdeps/tbeam_supreme/ArduinoJson/src/ArduinoJson/Configuration.hpp \
+ src/core/SystemStatus.h \
  /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src/Wire.h \
  /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal.h

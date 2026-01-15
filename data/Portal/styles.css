@@ -9,6 +9,13 @@
   --shadow:0 6px 24px rgba(0,0,0,.08);
   --radius:14px;
   --font: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  --box-short-width:100%;
+  --box-narrow-width:68px;
+  --box-medium-width:25ch;
+  --box-long-width:100%;
+  --box-pad-y:11px;
+  --box-pad-x:12px;
+  --box-font-size:14px;
 }
 
 *{box-sizing:border-box}
@@ -33,6 +40,29 @@ body{
   border-bottom:1px solid var(--line);
 }
 
+.save-flag{
+  font-size:13px;
+  font-weight:700;
+  color:#fff;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#16a34a;
+  opacity:0;
+  display:inline-block;
+  transition:opacity .2s ease;
+}
+
+.save-flag.is-visible{
+  opacity:1;
+}
+
+.save-flag-row{
+  display:flex;
+  justify-content:flex-end;
+  min-height:24px;
+  margin:0 0 6px;
+}
+
 .brand{
   display:flex;
   align-items:center;
@@ -49,6 +79,12 @@ body{
   flex:1;
   align-items:center;
   justify-content:center;
+}
+
+.topbar-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
 
 .navlink{
@@ -103,6 +139,12 @@ body{
   display:grid;
   grid-template-columns: 280px 1fr;
   gap:26px;
+}
+
+.mission-grid{
+  display:grid;
+  grid-template-columns: 1fr;
+  gap:28px;
 }
 
 @media (max-width: 860px){
@@ -171,9 +213,9 @@ body{
 }
 
 .gps-card-title p{
-  margin:2px 0 0 0;
-  opacity:.75;
-  font-size:.95rem;
+  margin:10px 0;
+  color:var(--muted);
+  line-height:1.45;
 }
 
 /* Fields */
@@ -203,6 +245,51 @@ input:focus, select:focus{
   box-shadow:0 0 0 3px rgba(99,102,241,.12);
 }
 
+/* Shared box sizing */
+.box-short{width:var(--box-short-width);}
+.box-narrow{width:var(--box-narrow-width);}
+.box-medium{width:var(--box-medium-width); max-width:100%;}
+.box-long{width:var(--box-long-width);}
+
+/* Shared box styling */
+.box-display,
+.box-editable{
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:var(--box-pad-y) var(--box-pad-x);
+  font-size:var(--box-font-size);
+  line-height:1.2;
+}
+
+.box-editable{
+  background:#F0F6FF;
+  border-color:#c7d2fe;
+  color:#111827;
+}
+
+.box-display{
+  background:#ffffff;
+  color:#6b7280;
+}
+
+.box-center{
+  text-align:center;
+}
+
+.box-state-good{
+  border-color:#16a34a;
+  color:#15803d;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
+.box-state-bad{
+  border-color:#dc2626;
+  color:#b91c1c;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
 /* Editable vs readonly field distinction */
 input:not([readonly]),
 select,
@@ -214,6 +301,14 @@ textarea{
 input[readonly]{
   background:#ffffff;
   color:#6b7280;
+}
+
+input.box-state-good{
+  color:#15803d;
+}
+
+input.box-state-bad{
+  color:#b91c1c;
 }
 
 /* Force editable background on selects (Safari / macOS fix) */
@@ -288,7 +383,6 @@ select{
 
 .tt-row input{
   width:100%;
-  max-width:120px;
   text-align:center;
 }
 
@@ -310,8 +404,6 @@ select{
 
 /* Globalstar ID fixed-width display */
 .globalstar-id{
-  width:20ch;
-  max-width:20ch;
   text-align:center;
 }
 
@@ -337,15 +429,70 @@ select{
 .status-landed{background:#92400e;}
 .status-abandoned{background:#dc2626;}
 
-/* Balloon callsign/type fixed width */
-.callsign-field{
-  width:25ch;
-  max-width:100%;
+.status-good{background:#16a34a;}
+.status-nofix{background:#dc2626;}
+.status-hold{background:#dc2626;}
+.status-ready{background:#16a34a;}
+.status-neutral{background:#9ca3af;}
+
+/* Balloon callsign row */
+.callsign-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
 
-.balloon-type-field{
-  width:25ch;
-  max-width:100%;
+.callsign-limit{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:400;
+  white-space:nowrap;
+}
+
+.mission-card .card-right{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.mission-inline-row{
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap:12px;
+}
+
+.inline-field{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.inline-field label{
+  margin:0;
+  font-size:14px;
+  color:#374151;
+}
+
+.termination-block{
+  border-top:1px dashed var(--line);
+  padding-top:12px;
+}
+
+.termination-block .mission-section-title{
+  margin:0 0 8px 0;
+}
+
+.termination-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:6px 0;
+}
+
+.termination-box{
+  text-align:center;
+  font-weight:700;
 }
 
 .mission-status {
@@ -372,6 +519,302 @@ select{
 
 .mission-status .status-value {
   font-weight: 700;
+}
+
+.mission-box .box-header{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-bottom:12px;
+}
+
+
+.mission-box .box-header h2{
+  margin:0;
+}
+
+.mission-id-field input{
+  max-width:260px;
+}
+
+.mission-id-row{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:12px;
+  align-items:end;
+}
+
+.mission-note{
+  margin-top:0;
+  font-weight:600;
+  color:#374151;
+  font-size:14px;
+  text-align:left;
+}
+
+.mission-note-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:-24px;
+  grid-column:2;
+  justify-content:flex-start;
+}
+
+.counter-inline-row{
+  margin-top:12px;
+}
+
+.mission-toggle{
+  margin-top:6px;
+  justify-content:flex-start;
+  align-self:flex-start;
+  grid-column:2;
+  width:100%;
+}
+
+.counter-inline-row{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex-wrap:nowrap;
+  margin-top:12px;
+}
+
+.counter-inline-row .inline-field{
+  gap:8px;
+}
+
+.tt-inline-grid{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: auto auto;
+  gap:12px;
+  align-items:start;
+}
+
+.tt-inline-grid .inline-field{
+  gap:10px;
+  justify-content:flex-start;
+}
+
+.tt-total-row-inline{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  grid-column:1;
+  grid-row:2;
+}
+
+.tt-total-row-inline label{
+  margin:0;
+  font-size:14px;
+  color:#374151;
+}
+
+.tt-total-row-inline span{
+  font-size:14px;
+  color:#374151;
+  font-weight:600;
+}
+
+.saved-poly-block{
+  margin-top:16px;
+  border-top:1px dashed var(--line);
+  padding-top:12px;
+}
+
+.saved-poly-block h3{
+  margin:0 0 8px 0;
+  font-size:15px;
+}
+
+.saved-poly-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.saved-poly-card{
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:8px 10px;
+  background:#fff;
+}
+
+.saved-poly-title{
+  font-weight:700;
+  margin-bottom:6px;
+}
+
+.saved-poly-point{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.point-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.point-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px 12px;
+}
+
+.point-row label{
+  margin:0;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.point-row input{
+  width:140px;
+}
+
+.point-label{
+  font-weight:700;
+  min-width:72px;
+}
+
+.point-actions{
+  display:flex;
+  gap:12px;
+  margin-top:12px;
+}
+
+.tt-total-row{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap:12px;
+  margin-top:10px;
+}
+
+.tt-total-cell{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.total-box-wrap{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.line-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.line-row-inline{
+  display:grid;
+  grid-template-columns: auto 90px auto 120px;
+  align-items:center;
+  gap:8px;
+  justify-content:start;
+}
+
+.line-row-inline label{
+  margin:0;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.axis-select{
+  width:80px;
+}
+
+.axis-value-label{
+  width:90px;
+  margin-left:4px;
+  text-align:left;
+}
+
+@media (max-width: 860px){
+  .line-row-inline{
+    grid-template-columns: 1fr;
+  }
+}
+
+.polygon-table-wrap{
+  margin-top:12px;
+}
+
+.polygon-table-wrap h3{
+  margin:0 0 6px 0;
+  font-size:15px;
+}
+
+.polygon-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:14px;
+}
+
+.polygon-table th,
+.polygon-table td{
+  padding:8px 10px;
+  border:1px solid var(--line);
+  text-align:left;
+}
+
+.counter-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px 12px;
+  text-align:center;
+  background:#f9fafb;
+}
+
+.counter-label{
+  font-size:12px;
+  color:var(--muted);
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+.counter-value{
+  font-size:20px;
+  font-weight:700;
+  margin-top:6px;
+}
+
+.poly-sets{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.polygon-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px 12px;
+  background:#fff;
+}
+
+.polygon-card summary{
+  cursor:pointer;
+  font-weight:700;
+  margin:-6px -6px 10px -6px;
+  padding:6px;
+}
+
+.polygon-card[open] summary{
+  border-bottom:1px dashed var(--line);
+  margin-bottom:12px;
+}
+
+.line-grid-compact{
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.line-grid-compact .line-row{
+  flex:1;
 }
 
 /* Mission section headers */
@@ -412,6 +855,31 @@ select{
   margin-right:6px;
   width:26px;
   text-align:right;
+}
+
+/* Line rules */
+.line-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:18px;
+  margin:10px 0;
+}
+
+.line-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.line-row label{
+  margin:0;
+  width:70px;
+}
+
+.line-row input,
+.line-row select{
+  max-width:140px;
+  text-align:center;
 }
 
 /* Invalid field highlight */

@@ -9,7 +9,6 @@
 </head>
 
 <body>
-  <!-- Top Bar -->
   <header class="topbar">
     <div class="brand">
       <img src="./assets/Logo_Small.png" alt="SABER" />
@@ -21,363 +20,161 @@
       <a class="navlink active" href="./active_mission.html">Active Mission</a>
     </nav>
 
-    <button id="saveActiveMission" class="btn btn-primary" type="button">Save</button>
+    <div class="topbar-actions">
+      <span id="saveFlag" class="save-flag" aria-live="polite"></span>
+      <button id="saveActiveMission" class="btn btn-primary" type="button">Save</button>
+    </div>
   </header>
 
-  <!-- Page Content -->
   <main class="container">
-    <section class="card grid">
+    <div class="mission-grid">
 
-      <!-- Left help column -->
-      <div class="card-left">
-        <h2>Active Mission</h2>
-        <p>Configure parameters for the currently active mission.</p>
-        <p class="muted">
-          Timed Termination defines when the system will automatically terminate.
-        </p>
-        <div class="mission-status">
-          <div class="status-row">
-            <span class="status-label">Callsign</span>
-            <span id="currentCallsign" class="status-value">--</span>
+      <section class="card mission-box" id="activeMissionBox">
+        <div class="box-header">
+          <h2>Active Mission</h2>
+        </div>
+
+        <div class="mission-id-row">
+          <div class="field mission-id-field">
+            <label for="missionId">Mission ID</label>
+            <input id="missionId" class="box-medium box-editable" type="text" placeholder="None" />
           </div>
-          <div class="status-row">
-            <span class="status-label">GPS Lat</span>
-            <span id="currentLat" class="status-value">--</span>
-          </div>
-          <div class="status-row">
-            <span class="status-label">GPS Lon</span>
-            <span id="currentLon" class="status-value">--</span>
+          <div class="field mission-id-field">
+            <label for="amMissionCallsign">Callsign</label>
+            <input id="amMissionCallsign" class="box-medium box-display" type="text" placeholder="--" readonly />
           </div>
         </div>
-      </div>
 
-      <!-- Right form column -->
-      <div class="card-right">
+        <div class="mission-note-row">
+          <span class="mission-note">Termination trigger count</span>
+          <input id="timedPill" class="box-narrow box-display box-center" type="text" value="0" readonly />
+        </div>
 
-        <!-- Timed Termination -->
-        <div class="mission-section-title">Timed Termination</div>
-        <p class="muted">
-          Termination timer will be computed automatically.
-        </p>
+        <div class="toggle mission-toggle">
+          <label class="switch">
+            <input id="satcomMessagesMission" type="checkbox" />
+            <span class="slider"></span>
+          </label>
+          <span>I have verified SATCOM messages have been received</span>
+        </div>
+      </section>
 
-        <div class="field tt-row">
-          <div>
+      <section class="card mission-box" id="timedTerminationBox">
+        <div class="box-header">
+          <h2>Timed Termination</h2>
+          <p class="muted">Termination timer will be computed automatically.</p>
+        </div>
+
+        <div class="tt-inline-grid">
+          <div class="inline-field">
             <label for="tt_days">Days</label>
-            <input id="tt_days" type="number" min="0" value="0" />
+            <input id="tt_days" class="box-narrow box-editable box-center" type="number" min="0" value="0" />
           </div>
-          <div>
+          <div class="inline-field">
             <label for="tt_hours">Hours</label>
-            <input id="tt_hours" type="number" min="0" max="23" value="0" />
+            <input id="tt_hours" class="box-narrow box-editable box-center" type="number" min="0" max="23" value="0" />
           </div>
-          <div>
+          <div class="inline-field">
             <label for="tt_minutes">Minutes</label>
-            <input id="tt_minutes" type="number" min="0" max="59" value="0" />
+            <input id="tt_minutes" class="box-narrow box-editable box-center" type="number" min="0" max="59" value="0" />
           </div>
-          <div>
+          <div class="inline-field">
             <label for="tt_seconds">Seconds</label>
-            <input id="tt_seconds" type="number" min="0" max="59" value="0" />
+            <input id="tt_seconds" class="box-narrow box-editable box-center" type="number" min="0" max="59" value="0" />
+          </div>
+          <div class="tt-total-row-inline">
+            <label for="tt_total">Total</label>
+            <input id="tt_total" class="box-narrow box-display box-center" type="text" readonly />
+            <span>Seconds</span>
           </div>
         </div>
+      </section>
 
-        <!-- Geofencing: Stay In -->
-        <div class="mission-section-title">Geofencing: Stay In</div>
-        <p class="muted">
-          Enter up to ten coordinates to define the stay-in operating area.
-          Leaving this area will trigger a violation.
-        </p>
-
-        <div class="coord-pair">
-          <div class="coord-row">
-            <span class="coord-index">1</span>
-            <label for="gf_lat_1">Latitude</label>
-            <input id="gf_lat_1" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="gf_lon_1">Longitude</label>
-            <input id="gf_lon_1" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">2</span>
-            <label for="gf_lat_2">Latitude</label>
-            <input id="gf_lat_2" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="gf_lon_2">Longitude</label>
-            <input id="gf_lon_2" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">3</span>
-            <label for="gf_lat_3">Latitude</label>
-            <input id="gf_lat_3" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="gf_lon_3">Longitude</label>
-            <input id="gf_lon_3" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">4</span>
-            <label for="gf_lat_4">Latitude</label>
-            <input id="gf_lat_4" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="gf_lon_4">Longitude</label>
-            <input id="gf_lon_4" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">5</span>
-            <label for="gf_lat_5">Latitude</label>
-            <input id="gf_lat_5" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="gf_lon_5">Longitude</label>
-            <input id="gf_lon_5" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">6</span>
-            <label for="gf_lat_6">Latitude</label>
-            <input id="gf_lat_6" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="gf_lon_6">Longitude</label>
-            <input id="gf_lon_6" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">7</span>
-            <label for="gf_lat_7">Latitude</label>
-            <input id="gf_lat_7" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="gf_lon_7">Longitude</label>
-            <input id="gf_lon_7" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">8</span>
-            <label for="gf_lat_8">Latitude</label>
-            <input id="gf_lat_8" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="gf_lon_8">Longitude</label>
-            <input id="gf_lon_8" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">9</span>
-            <label for="gf_lat_9">Latitude</label>
-            <input id="gf_lat_9" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="gf_lon_9">Longitude</label>
-            <input id="gf_lon_9" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">10</span>
-            <label for="gf_lat_10">Latitude</label>
-            <input id="gf_lat_10" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="gf_lon_10">Longitude</label>
-            <input id="gf_lon_10" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
+      <section class="card mission-box" id="remainInBox">
+        <div class="box-header">
+          <h2>Remain-in Termination</h2>
+          <p class="muted">Add points, then save the polygon.</p>
         </div>
 
-        <!-- Geofencing: Keep Out -->
-        <div class="mission-section-title">Geofencing: Keep Out</div>
-        <p class="muted">
-          Enter up to ten coordinates to define a keep-out area.
-          Entering this area will trigger a violation.
-        </p>
-
-        <div class="coord-pair">
-          <div class="coord-row">
-            <span class="coord-index">1</span>
-            <label for="ko_lat_1">Latitude</label>
-            <input id="ko_lat_1" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="ko_lon_1">Longitude</label>
-            <input id="ko_lon_1" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">2</span>
-            <label for="ko_lat_2">Latitude</label>
-            <input id="ko_lat_2" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="ko_lon_2">Longitude</label>
-            <input id="ko_lon_2" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">3</span>
-            <label for="ko_lat_3">Latitude</label>
-            <input id="ko_lat_3" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="ko_lon_3">Longitude</label>
-            <input id="ko_lon_3" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">4</span>
-            <label for="ko_lat_4">Latitude</label>
-            <input id="ko_lat_4" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="ko_lon_4">Longitude</label>
-            <input id="ko_lon_4" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">5</span>
-            <label for="ko_lat_5">Latitude</label>
-            <input id="ko_lat_5" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="ko_lon_5">Longitude</label>
-            <input id="ko_lon_5" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">6</span>
-            <label for="ko_lat_6">Latitude</label>
-            <input id="ko_lat_6" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="ko_lon_6">Longitude</label>
-            <input id="ko_lon_6" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">7</span>
-            <label for="ko_lat_7">Latitude</label>
-            <input id="ko_lat_7" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="ko_lon_7">Longitude</label>
-            <input id="ko_lon_7" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">8</span>
-            <label for="ko_lat_8">Latitude</label>
-            <input id="ko_lat_8" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="ko_lon_8">Longitude</label>
-            <input id="ko_lon_8" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">9</span>
-            <label for="ko_lat_9">Latitude</label>
-            <input id="ko_lat_9" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="ko_lon_9">Longitude</label>
-            <input id="ko_lon_9" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="coord-row">
-            <span class="coord-index">10</span>
-            <label for="ko_lat_10">Latitude</label>
-            <input id="ko_lat_10" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="coord-row">
-            <label for="ko_lon_10">Longitude</label>
-            <input id="ko_lon_10" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
+        <div id="remainInPoints" class="point-list"></div>
+        <div class="point-actions">
+          <button id="remainInAdd" class="btn btn-blue" type="button">Add</button>
+          <button id="remainInSave" class="btn btn-green" type="button">Save Polygon</button>
         </div>
 
-        <!-- Geofencing: Shall-Not-Pass Lines -->
-        <div class="mission-section-title">Geofencing: Shall-Not-Pass Lines</div>
-        <p class="muted">
-          Define line rules using a point and axis. Any crossing is a violation.
-        </p>
+        <div class="saved-poly-block">
+          <h3>Saved Polygon</h3>
+          <div id="remainInSaved" class="saved-poly-list"></div>
+        </div>
+      </section>
 
-        <div class="line-grid">
-          <div class="line-row">
-            <span class="coord-index">1</span>
+      <section class="card mission-box" id="keepOutBox">
+        <div class="box-header">
+          <h2>Keep-out Termination</h2>
+          <p class="muted">Add points, then save the polygon.</p>
+        </div>
+
+        <div id="keepOutPoints" class="point-list"></div>
+        <div class="point-actions">
+          <button id="keepOutAdd" class="btn btn-blue" type="button">Add</button>
+          <button id="keepOutSave" class="btn btn-green" type="button">Save Polygon</button>
+        </div>
+
+        <div class="saved-poly-block">
+          <h3>Saved Polygons</h3>
+          <div id="keepOutSaved" class="saved-poly-list"></div>
+        </div>
+      </section>
+
+      <section class="card mission-box" id="shallNotPassBox">
+        <div class="box-header">
+          <h2>Shall-not-pass Termination</h2>
+          <p class="muted">Define boundary line using axis &amp; coordinate.</p>
+        </div>
+
+        <div class="line-list">
+          <div class="line-row-inline">
             <label for="line_axis_1">Axis</label>
-            <select id="line_axis_1">
+            <select id="line_axis_1" class="axis-select">
               <option value="N/S">N/S</option>
               <option value="E/W">E/W</option>
             </select>
+            <label for="line_value_1" class="axis-value-label">Longitude</label>
+            <input id="line_value_1" class="axis-value-input box-short box-editable box-center" type="number" step="0.0001" min="-180" max="180" placeholder="0.0000" />
           </div>
-          <div class="line-row">
-            <label for="line_lat_1">Latitude</label>
-            <input id="line_lat_1" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="line-row">
-            <label for="line_lon_1">Longitude</label>
-            <input id="line_lon_1" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="line-row">
-            <span class="coord-index">2</span>
+          <div class="line-row-inline">
             <label for="line_axis_2">Axis</label>
-            <select id="line_axis_2">
+            <select id="line_axis_2" class="axis-select">
               <option value="N/S">N/S</option>
               <option value="E/W">E/W</option>
             </select>
+            <label for="line_value_2" class="axis-value-label">Longitude</label>
+            <input id="line_value_2" class="axis-value-input box-short box-editable box-center" type="number" step="0.0001" min="-180" max="180" placeholder="0.0000" />
           </div>
-          <div class="line-row">
-            <label for="line_lat_2">Latitude</label>
-            <input id="line_lat_2" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="line-row">
-            <label for="line_lon_2">Longitude</label>
-            <input id="line_lon_2" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="line-row">
-            <span class="coord-index">3</span>
+          <div class="line-row-inline">
             <label for="line_axis_3">Axis</label>
-            <select id="line_axis_3">
+            <select id="line_axis_3" class="axis-select">
               <option value="N/S">N/S</option>
               <option value="E/W">E/W</option>
             </select>
+            <label for="line_value_3" class="axis-value-label">Longitude</label>
+            <input id="line_value_3" class="axis-value-input box-short box-editable box-center" type="number" step="0.0001" min="-180" max="180" placeholder="0.0000" />
           </div>
-          <div class="line-row">
-            <label for="line_lat_3">Latitude</label>
-            <input id="line_lat_3" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="line-row">
-            <label for="line_lon_3">Longitude</label>
-            <input id="line_lon_3" type="number" step="0.000001" placeholder="-97.800000" />
-          </div>
-
-          <div class="line-row">
-            <span class="coord-index">4</span>
+          <div class="line-row-inline">
             <label for="line_axis_4">Axis</label>
-            <select id="line_axis_4">
+            <select id="line_axis_4" class="axis-select">
               <option value="N/S">N/S</option>
               <option value="E/W">E/W</option>
             </select>
-          </div>
-          <div class="line-row">
-            <label for="line_lat_4">Latitude</label>
-            <input id="line_lat_4" type="number" step="0.000001" placeholder="30.350000" />
-          </div>
-          <div class="line-row">
-            <label for="line_lon_4">Longitude</label>
-            <input id="line_lon_4" type="number" step="0.000001" placeholder="-97.800000" />
+            <label for="line_value_4" class="axis-value-label">Longitude</label>
+            <input id="line_value_4" class="axis-value-input box-short box-editable box-center" type="number" step="0.0001" min="-180" max="180" placeholder="0.0000" />
           </div>
         </div>
+      </section>
 
-      </div>
-    </section>
+    </div>
   </main>
 
 <script src="./active_mission.js"></script>
-  
 </body>
 </html>

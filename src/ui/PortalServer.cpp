@@ -6,7 +6,9 @@
 #include <ArduinoJson.h>
 
 #include "core/ConfigStore.h"
+#include "core/SystemStatus.h"
 #include "gps/GPSControl.h"
+#include "satcom/SatCom.h"
 
 static const char* AP_SSID = "SABER-T2C";
 static const char* AP_PASS = "saber1234";
@@ -20,6 +22,9 @@ static void fillDefaults(JsonDocument& doc) {
   doc.clear();
   doc["callsign"] = "";
   doc["balloonType"] = "";
+  doc["missionId"] = "";
+  doc["satcomMessages"] = false;
+  doc["ttTotalSec"] = 0;
   doc["note"] = "";
   doc["autoErase"] = false;
 }
@@ -105,12 +110,31 @@ void begin() {
       fillDefaults(cfg);
     }
 
-    doc["callsign"] = cfg["callsign"] | "";
+    doc["callsign"] = SystemStatus::callsign();
+    doc["balloonType"] = SystemStatus::balloonType();
+    doc["flightState"] = SystemStatus::flightState();
+    doc["holdState"] = SystemStatus::holdState();
+    doc["lora"] = SystemStatus::loraState();
+    doc["satcomState"] = SystemStatus::satcomState();
+    doc["battery"] = SystemStatus::batteryPct();
+    doc["geoCount"] = SystemStatus::geoCount();
+    doc["geoOk"] = SystemStatus::geoOk();
+    doc["missionId"] = cfg["missionId"] | "";
+    doc["satcomMessages"] = cfg["satcomMessages"] | false;
+    doc["ttTotalSec"] = cfg["ttTotalSec"] | 0;
     doc["gpsFix"] = GPSControl::hasFix();
     doc["lat"] = GPSControl::latitude();
     doc["lon"] = GPSControl::longitude();
     doc["alt_m"] = GPSControl::altitudeMeters();
     doc["sats"] = GPSControl::satellites();
+    const uint32_t satId = SatCom::lastId();
+    if (satId > 0) {
+      char idBuf[16];
+      snprintf(idBuf, sizeof(idBuf), "%lu", (unsigned long)satId);
+      doc["globalstarId"] = idBuf;
+    } else {
+      doc["globalstarId"] = "";
+    }
 
     String out;
     serializeJson(doc, out);
@@ -154,14 +178,26 @@ void begin() {
       // If a key is missing, set a default.
       if (!doc.containsKey("callsign"))   doc["callsign"] = "";
       if (!doc.containsKey("balloonType")) doc["balloonType"] = "";
+      if (!doc.containsKey("missionId"))  doc["missionId"] = "";
+      if (!doc.containsKey("satcomMessages")) doc["satcomMessages"] = false;
+      if (!doc.containsKey("ttTotalSec")) doc["ttTotalSec"] = 0;
       if (!doc.containsKey("note"))       doc["note"] = "";
       if (!doc.containsKey("autoErase"))  doc["autoErase"] = false;
 
       // Optional: coerce types (ArduinoJson is flexible; this keeps your schema stable)
       doc["callsign"] = doc["callsign"].as<String>();
       doc["balloonType"] = doc["balloonType"].as<String>();
+      doc["missionId"] = doc["missionId"].as<String>();
+      doc["satcomMessages"] = doc["satcomMessages"].as<bool>();
+      doc["ttTotalSec"] = doc["ttTotalSec"].as<uint32_t>();
       doc["note"] = doc["note"].as<String>();
       doc["autoErase"] = doc["autoErase"].as<bool>();
+      {
+        String cs = doc["callsign"].as<String>();
+        cs.trim();
+        if (cs.length() > 6) cs.remove(6);
+        doc["callsign"] = cs;
+      }
 
       if (!store.save(doc)) {
         request->send(500, "application/json", "{\"ok\":false,\"error\":\"save_failed\"}");

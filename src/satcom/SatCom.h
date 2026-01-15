@@ -14,6 +14,7 @@ public:
   // Documented command: Get ID (0x01)
   static void getIdAndPrint();
   static bool getId(uint32_t &id);
+  static uint32_t lastId();
 
   // Generic documented command helper (prints response as hex)
   static void queryAndHexDump(uint8_t cmd,

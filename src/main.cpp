@@ -11,6 +11,7 @@
 #include "geofence/GeoFence.h"
 #include "termination/Termination.h"
 #include "core/ConfigStore.h"
+#include "core/SystemStatus.h"
 #include <Wire.h>
 #include <math.h>
 
@@ -26,10 +27,67 @@ static uint32_t lastSatSendMs = 0;
 static bool satIdPrinted = false;
 static uint32_t lastSatIdQueryMs = 0;
 static uint32_t satId = 0;
+static uint32_t lastConfigCheckMs = 0;
+static bool defaultCallsignApplied = false;
+static bool configDisplayDirty = false;
+
+static ConfigStore portalConfig("/config.json");
+static String cachedCallsign = "";
+static String cachedBalloonType = "";
 
 static constexpr uint32_t MIN_BOOT_MS = 5000;
 static constexpr uint32_t SAT_SEND_INTERVAL_MS = 120000;
 static constexpr uint32_t STATUS_REFRESH_MS = 30000;
+static constexpr uint32_t CONFIG_REFRESH_MS = 3000;
+
+static void fillConfigDefaults(JsonDocument &doc) {
+  doc.clear();
+  doc["callsign"] = "";
+  doc["balloonType"] = "";
+  doc["note"] = "";
+  doc["autoErase"] = false;
+}
+
+static String normalizeCallsign(String cs) {
+  cs.trim();
+  if (cs.length() > 6) cs.remove(6);
+  return cs;
+}
+
+static bool isUnsetCallsign(const String &cs) {
+  String t = cs;
+  t.trim();
+  return t.length() == 0 || t.equalsIgnoreCase("NONE");
+}
+
+static String buildDefaultCallsign(uint32_t id) {
+  char buf[8];
+  snprintf(buf, sizeof(buf), "SR%03lu", (unsigned long)(id % 1000));
+  return String(buf);
+}
+
+static void applyConfigToDisplay(const JsonDocument &cfg) {
+  String callsign = cfg["callsign"] | "";
+  String balloonType = cfg["balloonType"] | "";
+
+  callsign = normalizeCallsign(callsign);
+  balloonType.trim();
+  if (isUnsetCallsign(callsign)) callsign = "NONE";
+
+  if (callsign != cachedCallsign) {
+    display_set_callsign(callsign.c_str());
+    SystemStatus::setCallsign(callsign.c_str());
+    cachedCallsign = callsign;
+    configDisplayDirty = true;
+  }
+
+  if (balloonType != cachedBalloonType) {
+    display_set_balloon_type(balloonType.c_str());
+    SystemStatus::setBalloonType(balloonType.c_str());
+    cachedBalloonType = balloonType;
+    configDisplayDirty = true;
+  }
+}
 
 // Helper: only redraw when % changes
 static void setBoot(uint8_t pct) {
@@ -55,7 +113,6 @@ void setup() {
   delay(200);
   Serial.println("[BOOT] setup start (serial ready)");
   
-
   // EARLY BOARD INIT (PMU / rails) - should be first dependency init
   Board_TBeamS3::earlyBegin();  // <-- FIRST!!!
   SatCom::begin();
@@ -77,18 +134,24 @@ void setup() {
   // ---------------- Display boot screen ----------------
   display_init();
   display_show_boot();
-  display_set_callsign("SR99");
+  display_set_callsign("NONE");
+  cachedCallsign = "NONE";
   display_set_satcom("INIT");
+  SystemStatus::setSatcomState("INIT");
   display_set_hold_state("HOLD");
   display_set_flight_state("GROUND");
-  {
-    ConfigStore portalConfig("/config.json");
+  display_set_balloon_type("");
+  SystemStatus::setCallsign("NONE");
+  SystemStatus::setHoldState("HOLD");
+  SystemStatus::setFlightState("GROUND");
+  SystemStatus::setBalloonType("");
+  SystemStatus::setLoraState("INIT");
+  cachedBalloonType = "";
+
+  if (portalConfig.begin()) {
     StaticJsonDocument<256> cfg;
-    if (portalConfig.begin() && portalConfig.load(cfg)) {
-      String callsign = cfg["callsign"] | String("SR99");
-      if (callsign.length() > 0) {
-        display_set_callsign(callsign.c_str());
-      }
+    if (portalConfig.load(cfg)) {
+      applyConfigToDisplay(cfg);
     }
   }
 
@@ -124,6 +187,22 @@ void loop() {
 
   // ---------------- GPS polling (raw NMEA passthrough / debug) ----------------
   GPSControl::poll();
+
+  // ---------------- Portal config refresh ----------------
+  if (now - lastConfigCheckMs >= CONFIG_REFRESH_MS) {
+    lastConfigCheckMs = now;
+    StaticJsonDocument<256> cfg;
+    if (!portalConfig.load(cfg)) {
+      fillConfigDefaults(cfg);
+    }
+    applyConfigToDisplay(cfg);
+  }
+
+  if (configDisplayDirty && screen == Screen::STATUS) {
+    display_show_status();
+    lastStatusDrawMs = now;
+    configDisplayDirty = false;
+  }
 
   // ---------------- BOOT ----------------
   if (screen == Screen::BOOT) {
@@ -166,12 +245,15 @@ void loop() {
         Termination::trigger(v.detail.c_str());
       }
       display_set_geo((uint8_t)GeoFence::ruleCount(), !violation);
+      SystemStatus::setGeoStatus((uint8_t)GeoFence::ruleCount(), !violation);
     } else {
       display_set_geo((uint8_t)GeoFence::ruleCount(), true);
+      SystemStatus::setGeoStatus((uint8_t)GeoFence::ruleCount(), true);
     }
     const int battPct = PMU_AXP2101::batteryPercent();
     if (battPct >= 0) {
       display_set_battery(static_cast<uint8_t>(battPct));
+      SystemStatus::setBatteryPct(battPct);
     }
     display_set_gps(GPSControl::hasFix(), GPSControl::satellites());
     display_show_status();
@@ -184,9 +266,30 @@ void loop() {
       char satBuf[20];
       snprintf(satBuf, sizeof(satBuf), "GOOD %lu", (unsigned long)satId);
       display_set_satcom(satBuf);
+      SystemStatus::setSatcomState(satBuf);
       satIdPrinted = true;
+
+      if (!defaultCallsignApplied && satId > 0) {
+        StaticJsonDocument<256> cfg;
+        if (!portalConfig.load(cfg)) {
+          fillConfigDefaults(cfg);
+        }
+        String callsign = cfg["callsign"] | "";
+        callsign = normalizeCallsign(callsign);
+        if (isUnsetCallsign(callsign)) {
+          String defaultCs = buildDefaultCallsign(satId);
+          cfg["callsign"] = defaultCs;
+          display_set_callsign(defaultCs.c_str());
+          SystemStatus::setCallsign(defaultCs.c_str());
+          cachedCallsign = defaultCs;
+          configDisplayDirty = true;
+          (void)portalConfig.save(cfg);
+        }
+        defaultCallsignApplied = true;
+      }
     } else {
       display_set_satcom("INIT");
+      SystemStatus::setSatcomState("INIT");
     }
   }
 

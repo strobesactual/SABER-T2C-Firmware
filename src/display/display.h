@@ -15,3 +15,4 @@ void display_set_battery(uint8_t pct);
 void display_set_geo(uint8_t count, bool ok);
 void display_set_flight_state(const char *state);
 void display_set_hold_state(const char *state);
+void display_set_balloon_type(const char *type);
