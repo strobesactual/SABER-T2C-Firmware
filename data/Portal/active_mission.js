@@ -143,6 +143,16 @@ function pointsToPolygon(points) {
     .map((p) => [Number(p.lat), Number(p.lon)]);
 }
 
+function closePolygon(poly) {
+  if (poly.length < 3) return poly;
+  const first = poly[0];
+  const last = poly[poly.length - 1];
+  if (first[0] !== last[0] || first[1] !== last[1]) {
+    poly.push([first[0], first[1]]);
+  }
+  return poly;
+}
+
 function formatPointValue(v) {
   const num = Number(v);
   return Number.isFinite(num) ? num.toFixed(6) : "--";
@@ -338,6 +348,12 @@ function wireEvents() {
       alert("Keep-out polygon requires at least 3 points.");
       return;
     }
+    const area = Math.abs(polygonArea(poly));
+    if (area === 0) {
+      alert("Keep-out polygon is invalid. Points must form a closed shape.");
+      return;
+    }
+    closePolygon(poly);
     keepOutPolygons.push(poly);
     keepOutDraft.length = 0;
     renderPointList("keepOutPoints", keepOutDraft);
@@ -350,11 +366,21 @@ function wireEvents() {
       alert("Only one remain-in polygon is allowed.");
       return;
     }
+    const hasSelection = document.querySelector(".area-select-remain:checked");
+    if (hasSelection) {
+      alert("A pre-defined remain-in area is already selected.");
+      return;
+    }
     addPoint(remainInDraft, "remainInPoints");
   });
   if (remainSave) remainSave.addEventListener("click", () => {
     if (remainInPolygon.length) {
       alert("Only one remain-in polygon is allowed.");
+      return;
+    }
+    const hasSelection = document.querySelector(".area-select-remain:checked");
+    if (hasSelection) {
+      alert("A pre-defined remain-in area is already selected.");
       return;
     }
     if (!validatePoints(remainInDraft, "remainInPoints")) return;
@@ -368,6 +394,7 @@ function wireEvents() {
       alert("Remain-in polygon is invalid. Points must form a closed shape.");
       return;
     }
+    closePolygon(poly);
     remainInPolygon = poly;
     remainInDraft.length = 0;
     renderPointList("remainInPoints", remainInDraft);
@@ -404,6 +431,39 @@ function wireEvents() {
       value.addEventListener("blur", () => formatAxisValue(value));
     }
   }
+
+  document.querySelectorAll(".area-select-keep").forEach((el) => {
+    el.addEventListener("change", updateSelectedAreas);
+  });
+  document.querySelectorAll(".area-select-remain").forEach((el) => {
+    el.addEventListener("change", (e) => {
+      const target = e.currentTarget;
+      if (target.checked) {
+        document.querySelectorAll(".area-select-remain").forEach((other) => {
+          if (other !== target) other.checked = false;
+        });
+        const row = target.closest("tr");
+        if (row) {
+          const keep = row.querySelector(".area-select-keep");
+          if (keep) keep.checked = false;
+        }
+      }
+      updateSelectedAreas();
+    });
+  });
+  document.querySelectorAll(".area-select-keep").forEach((el) => {
+    el.addEventListener("change", (e) => {
+      const target = e.currentTarget;
+      if (target.checked) {
+        const row = target.closest("tr");
+        if (row) {
+          const remain = row.querySelector(".area-select-remain");
+          if (remain) remain.checked = false;
+        }
+      }
+      updateSelectedAreas();
+    });
+  });
 }
 
 function onSaveClick() {
@@ -465,7 +525,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const saveBtn = document.getElementById("saveActiveMission");
   if (saveBtn) saveBtn.addEventListener("click", onSaveClick);
+  updateSelectedAreas();
 });
+
+function updateSelectedAreas() {
+  const selectedKeep = Array.from(document.querySelectorAll(".area-select-keep:checked"))
+    .map((el) => el.getAttribute("data-area-name"))
+    .filter((name) => name && name.trim().length > 0);
+  const selectedRemain = Array.from(document.querySelectorAll(".area-select-remain:checked"))
+    .map((el) => el.getAttribute("data-area-name"))
+    .filter((name) => name && name.trim().length > 0);
+  const remainOut = document.getElementById("selectedRemainIn");
+  if (remainOut) {
+    remainOut.textContent = selectedRemain.length ? selectedRemain[0] : "None selected.";
+  }
+  const keepOut = document.getElementById("selectedKeepOut");
+  if (keepOut) {
+    keepOut.textContent = selectedKeep.length ? selectedKeep.join(", ") : "None selected.";
+  }
+  setRemainPredefinedState(selectedRemain.length > 0);
+}
+
+function setRemainPredefinedState(hasSelection) {
+  const remainAdd = document.getElementById("remainInAdd");
+  const remainSave = document.getElementById("remainInSave");
+  if (remainAdd) remainAdd.disabled = hasSelection;
+  if (remainSave) remainSave.disabled = hasSelection;
+  const remainSaved = document.getElementById("remainInSaved");
+  if (remainSaved && hasSelection) {
+    remainSaved.innerHTML = '<div class="muted">Pre-defined area already selected</div>';
+  }
+}
 
 function updateAxisLabel(axisEl) {
   const row = axisEl?.closest(".line-row-inline");

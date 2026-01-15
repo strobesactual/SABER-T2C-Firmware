@@ -13,6 +13,7 @@
 static const char* AP_SSID = "SABER-T2C";
 static const char* AP_PASS = "saber1234";
 static const char* GEOFENCE_PATH = "/geofence.json";
+static const char* GEOFENCE_DB_PATH = "/geofence_db.json";
 
 static AsyncWebServer server(80);
 static ConfigStore store("/config.json");
@@ -77,6 +78,11 @@ void begin() {
     StaticJsonDocument<256> geoDoc;
     fillGeofenceDefaults(geoDoc);
     saveJsonFile(GEOFENCE_PATH, geoDoc);
+  }
+  if (!LittleFS.exists(GEOFENCE_DB_PATH)) {
+    StaticJsonDocument<256> geoDoc;
+    fillGeofenceDefaults(geoDoc);
+    saveJsonFile(GEOFENCE_DB_PATH, geoDoc);
   }
 
   WiFi.mode(WIFI_AP);
@@ -238,6 +244,7 @@ void begin() {
         request->send(500, "application/json", "{\"ok\":false,\"error\":\"save_failed\"}");
         return;
       }
+      (void)saveJsonFile(GEOFENCE_DB_PATH, doc);
 
       request->send(200, "application/json", "{\"ok\":true}");
     }

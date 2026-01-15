@@ -190,6 +190,7 @@ body{
 .card-left h2{margin:0 0 10px 0;}
 .card-left p{margin:10px 0; color:var(--muted); line-height:1.45;}
 .muted{color:var(--muted);}
+.tight{margin-bottom:0;}
 
 /* Section titles with icons (SABER + GPS) */
 .card-title,
@@ -652,6 +653,77 @@ select{
   color:var(--muted);
 }
 
+.saved-area-table-wrap{
+  max-height:180px;
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:10px;
+}
+
+.saved-area-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+
+.saved-area-table th,
+.saved-area-table td{
+  padding:8px 10px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+  vertical-align:top;
+}
+
+.saved-area-table th:first-child,
+.saved-area-table td:first-child,
+.saved-area-table th:nth-child(2),
+.saved-area-table td:nth-child(2){
+  text-align:center;
+}
+
+.saved-area-table th{
+  position:sticky;
+  top:0;
+  background:#fff;
+  z-index:1;
+}
+
+.keepout-right{
+  grid-column:2;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.selected-area-block{
+  margin-top:12px;
+}
+
+.selected-area-block + .saved-area-table-wrap{
+  margin-top:20px;
+}
+
+.selected-area-title{
+  font-weight:700;
+  margin-bottom:6px;
+}
+
+.selected-area-list{
+  font-size:14px;
+}
+
+
+
+.remain-selection{
+  margin-top:0;
+  margin-bottom:-12px;
+}
+
+.keep-selection{
+  margin-top:12px;
+}
+
+
 .point-list{
   display:flex;
   flex-direction:column;
@@ -733,6 +805,10 @@ select{
   width:90px;
   margin-left:4px;
   text-align:left;
+}
+
+.box-coordinate{
+  width:120px;
 }
 
 @media (max-width: 860px){
