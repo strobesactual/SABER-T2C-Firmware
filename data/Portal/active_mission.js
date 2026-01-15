@@ -206,9 +206,32 @@ function getTimedTotalSeconds() {
 }
 
 function updateTimedTotal() {
-  const total = getTimedTotalSeconds();
+  const totalSeconds = getTimedTotalSeconds();
+  const totalMinutes = Math.round(totalSeconds / 60);
   const totalEl = document.getElementById("tt_total");
-  if (totalEl) totalEl.value = String(total);
+  if (totalEl) totalEl.value = String(totalMinutes);
+}
+
+function setTimedEnabled(enabled) {
+  ["tt_days", "tt_hours", "tt_minutes", "tt_seconds"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = !enabled;
+    if (!enabled) {
+      el.setAttribute("readonly", "readonly");
+    } else {
+      el.removeAttribute("readonly");
+    }
+    el.classList.toggle("box-editable", enabled);
+    el.classList.toggle("box-display", !enabled);
+  });
+  if (!enabled) {
+    ["tt_days", "tt_hours", "tt_minutes", "tt_seconds"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = "0";
+    });
+  }
+  updateTimedTotal();
 }
 
 function collectLines(count) {
@@ -415,6 +438,14 @@ function wireEvents() {
     });
   });
 
+  const timedToggle = document.getElementById("timedEnabled");
+  if (timedToggle) {
+    timedToggle.addEventListener("change", () => {
+      setTimedEnabled(timedToggle.checked);
+      updateCounters();
+    });
+  }
+
   for (let i = 1; i <= 4; i++) {
     const value = document.getElementById(`line_value_${i}`);
     const axis = document.getElementById(`line_axis_${i}`);
@@ -492,6 +523,8 @@ function onSaveClick() {
   const satcom = document.getElementById("satcomMessagesMission");
   const satcomMessages = !!satcom?.checked;
   const ttTotalSec = getTimedTotalSeconds();
+  const ttTotalMin = Math.round(ttTotalSec / 60);
+  const triggerCount = calculateTriggerCount(ttTotalSec);
 
   Promise.all([
     apiSaveGeofence(currentGeofenceDoc),
@@ -500,6 +533,8 @@ function onSaveClick() {
       cfg.missionId = missionId;
       cfg.satcomMessages = satcomMessages;
       cfg.ttTotalSec = ttTotalSec;
+      cfg.ttTotalMin = ttTotalMin;
+      cfg.triggerCount = triggerCount;
       return apiSaveConfig(cfg);
     })(),
   ])
@@ -510,6 +545,14 @@ function onSaveClick() {
     .catch(() => showSaveFlag("Save failed", true));
 }
 
+function calculateTriggerCount(ttTotalSec) {
+  const timerTrigger = ttTotalSec > 60 ? 1 : 0;
+  const keepOutCount = keepOutPolygons.length;
+  const remainInCount = remainInPolygon.length ? 1 : 0;
+  const lineCount = collectLines(4).length;
+  return timerTrigger + keepOutCount + remainInCount + lineCount;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   renderPointList("keepOutPoints", keepOutDraft);
   renderPointList("remainInPoints", remainInDraft);
@@ -517,6 +560,11 @@ document.addEventListener("DOMContentLoaded", () => {
   wireEvents();
   updateTimedTotal();
   updateCounters();
+  const timedToggle = document.getElementById("timedEnabled");
+  if (timedToggle) {
+    timedToggle.checked = false;
+    setTimedEnabled(false);
+  }
   loadStatus();
   loadConfig();
   loadGeofence();

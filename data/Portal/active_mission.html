@@ -60,32 +60,44 @@
       </section>
 
       <section class="card mission-box" id="timedTerminationBox">
-        <div class="box-header">
-          <h2>Timed Termination</h2>
-          <p class="muted">Termination timer will be computed automatically.</p>
+        <div class="card-left">
+          <div class="box-header">
+            <h2>Timed Termination</h2>
+            <p class="muted">Termination timer will be computed automatically.</p>
+          </div>
         </div>
 
-        <div class="tt-inline-grid">
-          <div class="inline-field">
-            <label for="tt_days">Days</label>
-            <input id="tt_days" class="box-narrow box-editable box-center" type="number" min="0" value="0" />
+        <div class="card-right">
+          <div class="toggle timed-toggle">
+            <label class="switch">
+              <input id="timedEnabled" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+            <span>Timed termination enabled</span>
           </div>
-          <div class="inline-field">
-            <label for="tt_hours">Hours</label>
-            <input id="tt_hours" class="box-narrow box-editable box-center" type="number" min="0" max="23" value="0" />
-          </div>
-          <div class="inline-field">
-            <label for="tt_minutes">Minutes</label>
-            <input id="tt_minutes" class="box-narrow box-editable box-center" type="number" min="0" max="59" value="0" />
-          </div>
-          <div class="inline-field">
-            <label for="tt_seconds">Seconds</label>
-            <input id="tt_seconds" class="box-narrow box-editable box-center" type="number" min="0" max="59" value="0" />
-          </div>
-          <div class="tt-total-row-inline">
-            <label for="tt_total">Total</label>
-            <input id="tt_total" class="box-display box-center box-coordinate" type="text" readonly />
-            <span>Seconds</span>
+
+          <div class="tt-inline-grid">
+            <div class="inline-field">
+              <label for="tt_days">Days</label>
+              <input id="tt_days" class="box-narrow box-editable box-center" type="number" min="0" value="0" />
+            </div>
+            <div class="inline-field">
+              <label for="tt_hours">Hours</label>
+              <input id="tt_hours" class="box-narrow box-editable box-center" type="number" min="0" max="23" value="0" />
+            </div>
+            <div class="inline-field">
+              <label for="tt_minutes">Minutes</label>
+              <input id="tt_minutes" class="box-narrow box-editable box-center" type="number" min="0" max="59" value="0" />
+            </div>
+            <div class="inline-field">
+              <label for="tt_seconds">Seconds</label>
+              <input id="tt_seconds" class="box-narrow box-editable box-center" type="number" min="0" max="59" value="0" />
+            </div>
+            <div class="tt-total-row-inline">
+              <label for="tt_total">Total</label>
+              <input id="tt_total" class="box-display box-center box-coordinate" type="text" readonly />
+              <span>Minutes</span>
+            </div>
           </div>
         </div>
       </section>

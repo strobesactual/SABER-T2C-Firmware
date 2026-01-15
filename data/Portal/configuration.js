@@ -142,13 +142,17 @@ function extractSatcomId(status) {
 function setMissionFields(status) {
   const hold = (status?.holdState || "").toString().trim().toUpperCase();
   const statusText = hold === "HOLD" ? "HOLD" : "READY";
-  const geoCount = Number(status?.geoCount);
-  const geoCountText = Number.isFinite(geoCount) ? geoCount : 0;
+  const triggerCount = Number(status?.triggerCount);
+  const totalSec = Number(status?.ttTotalSec);
+  const timerTrigger = Number.isFinite(totalSec) && totalSec > 60 ? 1 : 0;
+  const geoCountText = Number.isFinite(triggerCount)
+    ? Math.max(triggerCount - timerTrigger, 0)
+    : 0;
   const lora = (status?.lora || "").toString().trim();
   const batt = Number(status?.battery);
   const battText = Number.isFinite(batt) && batt >= 0 ? `${batt}%` : "--";
-  const seconds = Number(status?.ttTotalSec);
-  const secondsText = Number.isFinite(seconds) ? String(seconds).padStart(4, "0") : "0000";
+  const minutes = Number(status?.ttTotalMin);
+  const minutesText = Number.isFinite(minutes) ? String(minutes).padStart(4, "0") : "0000";
 
   const statusEl = document.getElementById("missionStatus");
   const loraEl = document.getElementById("missionLora");
@@ -167,7 +171,7 @@ function setMissionFields(status) {
   }
   if (battEl) battEl.textContent = battText;
   if (geoEl) geoEl.textContent = String(geoCountText).padStart(2, "0");
-  if (secEl) secEl.textContent = secondsText;
+  if (secEl) secEl.textContent = minutesText;
 }
 
 /* ---------- field maps (ONLY what exists in HTML) ---------- */

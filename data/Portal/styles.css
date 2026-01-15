@@ -574,6 +574,10 @@ select{
   width:100%;
 }
 
+.timed-toggle{
+  margin-bottom:8px;
+}
+
 .counter-inline-row{
   display:flex;
   align-items:center;

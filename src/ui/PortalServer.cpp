@@ -26,6 +26,8 @@ static void fillDefaults(JsonDocument& doc) {
   doc["missionId"] = "";
   doc["satcomMessages"] = false;
   doc["ttTotalSec"] = 0;
+  doc["ttTotalMin"] = 0;
+  doc["triggerCount"] = 0;
   doc["note"] = "";
   doc["autoErase"] = false;
 }
@@ -128,6 +130,8 @@ void begin() {
     doc["missionId"] = cfg["missionId"] | "";
     doc["satcomMessages"] = cfg["satcomMessages"] | false;
     doc["ttTotalSec"] = cfg["ttTotalSec"] | 0;
+    doc["ttTotalMin"] = cfg["ttTotalMin"] | 0;
+    doc["triggerCount"] = cfg["triggerCount"] | 0;
     doc["gpsFix"] = GPSControl::hasFix();
     doc["lat"] = GPSControl::latitude();
     doc["lon"] = GPSControl::longitude();
@@ -187,6 +191,8 @@ void begin() {
       if (!doc.containsKey("missionId"))  doc["missionId"] = "";
       if (!doc.containsKey("satcomMessages")) doc["satcomMessages"] = false;
       if (!doc.containsKey("ttTotalSec")) doc["ttTotalSec"] = 0;
+      if (!doc.containsKey("ttTotalMin")) doc["ttTotalMin"] = 0;
+      if (!doc.containsKey("triggerCount")) doc["triggerCount"] = 0;
       if (!doc.containsKey("note"))       doc["note"] = "";
       if (!doc.containsKey("autoErase"))  doc["autoErase"] = false;
 
@@ -196,6 +202,8 @@ void begin() {
       doc["missionId"] = doc["missionId"].as<String>();
       doc["satcomMessages"] = doc["satcomMessages"].as<bool>();
       doc["ttTotalSec"] = doc["ttTotalSec"].as<uint32_t>();
+      doc["ttTotalMin"] = doc["ttTotalMin"].as<uint32_t>();
+      doc["triggerCount"] = doc["triggerCount"].as<uint32_t>();
       doc["note"] = doc["note"].as<String>();
       doc["autoErase"] = doc["autoErase"].as<bool>();
       {
