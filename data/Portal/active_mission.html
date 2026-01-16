@@ -18,6 +18,7 @@
       <a class="navlink" href="./configuration.html">Configuration</a>
       <a class="navlink" href="./mission_library.html">Mission Library</a>
       <a class="navlink active" href="./active_mission.html">Active Mission</a>
+      <a class="navlink" href="./testing.html">Testing</a>
     </nav>
 
     <div class="topbar-actions">
@@ -63,23 +64,22 @@
         </div>
       </section>
 
-      <section class="card mission-box" id="timedTerminationBox">
+<section class="card mission-box" id="timedTerminationBox">
         <div class="card-left">
           <div class="box-header">
             <h2>Timed Termination</h2>
             <p class="muted">Termination timer will be computed automatically.</p>
+            <div class="toggle card-toggle">
+              <label class="switch">
+                <input id="timedEnabled" type="checkbox" />
+                <span class="slider"></span>
+              </label>
+              <span>Enable timed termination</span>
+            </div>
           </div>
         </div>
 
         <div class="card-right">
-          <div class="toggle timed-toggle">
-            <label class="switch">
-              <input id="timedEnabled" type="checkbox" />
-              <span class="slider"></span>
-            </label>
-            <span>Timed termination enabled</span>
-          </div>
-
           <div class="tt-inline-grid">
             <div class="inline-field">
               <label for="tt_days">Days</label>
@@ -106,84 +106,60 @@
         </div>
       </section>
 
-      <section class="card mission-box" id="predefinedAreasBox">
-        <div class="card-left">
-          <div class="card-title">
-            <h2>FAA Special Use Airspace</h2>
+<section class="card mission-box" id="remainInBox">
+        <div class="box-header">
+          <h2>Contained Termination</h2>
+          <p class="muted tight">Leaving the selected area will trigger termination</p>
+          <div class="toggle card-toggle">
+            <label class="switch">
+              <input id="containedEnabled" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+            <span>Enable contained termination</span>
           </div>
-          <p class="muted">Select up to 5 areas from the FAA SUA database.</p>
         </div>
 
-        <div class="card-right">
-          <div class="sua-search">
-            <label for="suaSearch">Search areas</label>
-            <input id="suaSearch" class="box-medium box-editable" type="text" placeholder="Search by name or ID" />
-          </div>
+        <div id="containedPill" class="status-pill status-neutral status-pill-wide">No selection</div>
+      </section>
 
-          <div id="suaCount" class="sua-count muted"></div>
-
-          <div class="sua-list-row">
-            <select id="suaSelect" class="sua-select" size="6">
-              <option>Loading areas…</option>
-            </select>
-            <div class="sua-actions-side">
-              <button id="suaSetRemain" class="btn btn-blue btn-small" type="button">Set as Remain-in boundary</button>
-              <button id="suaAddKeepOut" class="btn btn-green btn-small" type="button">Add to Keep-out boundaries</button>
+<section class="card mission-box" id="keepOutBox">
+        <div class="card-left">
+          <div class="box-header">
+            <h2>Exclusion Termination</h2>
+            <p class="muted tight">Entering the selected area(s) will trigger termination</p>
+            <div class="toggle card-toggle">
+              <label class="switch">
+                <input id="exclusionEnabled" type="checkbox" />
+                <span class="slider"></span>
+              </label>
+              <span>Enable exclusion termination</span>
             </div>
           </div>
         </div>
-      </section>
-
-      <section class="card mission-box" id="createPolygonsBox">
-        <div class="card-left">
-          <div class="box-header">
-            <h2>Create polygons</h2>
-            <p class="muted">Use manual points to build custom remain-in or keep-out boundaries.</p>
-          </div>
-        </div>
 
         <div class="card-right">
-          <div id="createPolyPoints" class="point-list"></div>
-          <div class="point-actions create-poly-actions">
-            <button id="createPolyAdd" class="btn btn-blue" type="button">Add</button>
-            <button id="createSetRemain" class="btn btn-blue btn-small" type="button">Set as Remain-in boundary</button>
-            <button id="createAddKeepOut" class="btn btn-green btn-small" type="button">Add to Keep-out boundaries</button>
+          <div class="exclusion-pill-grid">
+            <div id="exclusionPill1" class="status-pill status-neutral status-pill-wide">--</div>
+            <div id="exclusionPill2" class="status-pill status-neutral status-pill-wide">--</div>
+            <div id="exclusionPill3" class="status-pill status-neutral status-pill-wide">--</div>
+            <div id="exclusionPill4" class="status-pill status-neutral status-pill-wide">--</div>
+            <div id="exclusionPill5" class="status-pill status-neutral status-pill-wide">--</div>
+            <div id="exclusionPill6" class="status-pill status-neutral status-pill-wide">--</div>
           </div>
         </div>
       </section>
 
-      <section class="card mission-box" id="remainInBox">
+<section class="card mission-box" id="shallNotPassBox">
         <div class="box-header">
-          <h2>Remain-in Termination</h2>
-          <p class="muted tight">Create a single polygon to define the balloon flight area. Leaving this polygon will trigger termination.</p>
-        </div>
-
-        <div class="saved-poly-block">
-          <h3>Saved Polygon</h3>
-          <div id="remainInSaved" class="saved-poly-list"></div>
-        </div>
-      </section>
-
-      <section class="card mission-box" id="keepOutBox">
-        <div class="card-left">
-          <div class="box-header">
-            <h2>Keep-out Termination</h2>
-            <p class="muted tight">Add multiple polygons that trigger termination upon entry.</p>
-          </div>
-        </div>
-
-        <div class="card-right">
-          <div class="saved-poly-block">
-            <h3>Saved Polygons</h3>
-            <div id="keepOutSaved" class="saved-poly-list"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card mission-box" id="shallNotPassBox">
-        <div class="box-header">
-          <h2>Shall-not-pass Termination</h2>
+          <h2>Crossing Termination</h2>
           <p class="muted">Define boundary line using axis &amp; coordinate.</p>
+          <div class="toggle card-toggle">
+            <label class="switch">
+              <input id="crossingEnabled" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+            <span>Enable crossing termination</span>
+          </div>
         </div>
 
         <div class="line-list">
@@ -222,6 +198,78 @@
             </select>
             <label for="line_value_4" class="axis-value-label">Longitude</label>
             <input id="line_value_4" class="axis-value-input box-short box-editable box-center" type="number" step="0.0001" min="-180" max="180" placeholder="0.0000" />
+          </div>
+        </div>
+      </section>
+
+<section class="card mission-box" id="prebuiltAreasBox">
+        <div class="card-left">
+          <div class="card-title">
+            <h2>Pre-built areas</h2>
+          </div>
+          <p class="muted">Choose from your custom area library.</p>
+        </div>
+
+        <div class="card-right">
+          <div id="prebuiltCount" class="sua-count muted"></div>
+          <div class="sua-list-row">
+            <select id="prebuiltSelect" class="sua-select" size="6">
+              <option>Loading areas…</option>
+            </select>
+            <div class="sua-actions-side">
+              <button id="prebuiltSetRemain" class="btn btn-blue btn-small" type="button">Set as Contained boundary</button>
+              <button id="prebuiltAddKeepOut" class="btn btn-green btn-small" type="button">Add to Exclusion boundaries</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+<section class="card mission-box" id="predefinedAreasBox">
+        <div class="card-left">
+          <div class="card-title">
+            <h2>FAA Special Use Airspace</h2>
+          </div>
+          <p class="muted">Select up to 6 areas from the FAA SUA database.</p>
+        </div>
+
+        <div class="card-right">
+          <div class="sua-search">
+            <label for="suaSearch">Search areas</label>
+            <input id="suaSearch" class="box-medium box-editable" type="text" placeholder="Search by name or ID" />
+          </div>
+
+          <div id="suaCount" class="sua-count muted"></div>
+
+          <div class="sua-list-row">
+            <select id="suaSelect" class="sua-select" size="6">
+              <option>Loading areas…</option>
+            </select>
+            <div class="sua-actions-side">
+              <button id="suaSetRemain" class="btn btn-blue btn-small" type="button">Set as Contained boundary</button>
+              <button id="suaAddKeepOut" class="btn btn-green btn-small" type="button">Add to Exclusion boundaries</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+<section class="card mission-box" id="createPolygonsBox">
+        <div class="card-left">
+          <div class="box-header">
+            <h2>Create polygons</h2>
+            <p class="muted">Use manual points to build custom contained or exclusion boundaries.</p>
+          </div>
+        </div>
+
+        <div class="card-right">
+          <div class="sua-search">
+            <label for="createPolyLabel">Label</label>
+            <input id="createPolyLabel" class="box-medium box-editable" type="text" placeholder="Enter name" required />
+          </div>
+          <div id="createPolyPoints" class="point-list"></div>
+          <div class="point-actions create-poly-actions">
+            <button id="createPolyAdd" class="btn btn-blue" type="button">Add</button>
+            <button id="createSetRemain" class="btn btn-blue btn-small" type="button">Set as Contained boundary</button>
+            <button id="createAddKeepOut" class="btn btn-green btn-small" type="button">Add to Exclusion boundaries</button>
           </div>
         </div>
       </section>

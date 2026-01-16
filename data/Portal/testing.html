@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Testing</title>
+
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="./assets/Logo_Small.png" alt="SABER" />
+    </div>
+
+    <nav class="nav">
+      <a class="navlink" href="./configuration.html">Configuration</a>
+      <a class="navlink" href="./mission_library.html">Mission Library</a>
+      <a class="navlink" href="./active_mission.html">Active Mission</a>
+      <a class="navlink active" href="./testing.html">Testing</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="mission-grid">
+
+      <section class="card mission-box" id="testingParamsBox">
+        <div class="card-left testing-card-left">
+          <div class="box-header">
+            <h2>Testing parameters</h2>
+          </div>
+          <div class="testing-toggle-group">
+            <div class="toggle">
+              <label class="switch">
+                <input id="flightModeEnabled" type="checkbox" />
+                <span class="slider"></span>
+              </label>
+              <span>Enable flight mode</span>
+            </div>
+
+            <div class="toggle">
+              <label class="switch">
+                <input id="geofenceViolation" type="checkbox" />
+                <span class="slider"></span>
+              </label>
+              <span>Geofence violation</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-right">
+          <div class="field tt-row">
+            <div>
+              <label for="gpsFlight">Mode</label>
+              <input id="gpsFlight" class="box-short box-display" type="text" placeholder="GROUND" readonly />
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script src="./testing.js"></script>
+</body>
+</html>

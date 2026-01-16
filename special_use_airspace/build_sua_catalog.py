@@ -1,10 +1,12 @@
 import json
 import struct
+from datetime import datetime
 from pathlib import Path
 
 SRC = Path("special_use_airspace/sua_primitives.json")
 IDX = Path("data/sua_catalog.idx")
 BIN = Path("data/sua_catalog.bin")
+META = Path("data/sua_catalog_meta.json")
 
 MAGIC = b"SIA1"
 VERSION = 1
@@ -113,6 +115,12 @@ def build_geometry(feat, string_offsets):
 def main():
     data = json.loads(SRC.read_text())
     features = data.get("features", [])
+    as_of = data.get("generated_at", "")
+    try:
+        dt = datetime.fromisoformat(as_of.replace("Z", "+00:00"))
+        as_of = dt.strftime("%d %b %Y")
+    except ValueError:
+        pass
 
     names = []
     type_codes = []
@@ -177,6 +185,12 @@ def main():
             entry["max_lon"],
         ))
     IDX.write_bytes(idx_header + idx_data)
+
+    meta = {
+        "as_of": as_of,
+        "area_count": len(idx_entries),
+    }
+    META.write_text(json.dumps(meta, separators=(",", ":")))
 
     print(f"Wrote {IDX} and {BIN} ({len(idx_entries)} areas)")
 

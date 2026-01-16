@@ -540,7 +540,7 @@ select{
 
 .mission-id-row{
   display:grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap:12px;
   align-items:end;
 }
@@ -657,6 +657,56 @@ select{
   color:var(--muted);
 }
 
+.status-pill-wide{
+  margin-top:12px;
+  width:var(--box-medium-width);
+  min-height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:600;
+}
+
+.exclusion-pill-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:10px;
+  align-items:start;
+}
+
+.card-toggle{
+  margin-top:10px;
+}
+
+.card-disabled{
+  opacity:0.6;
+}
+
+.card-disabled .line-list{
+  opacity:0.6;
+}
+
+.card-disabled .line-list input,
+.card-disabled .line-list select{
+  background:#f3f4f6;
+}
+
+.card-disabled .status-pill{
+  background:#e5e7eb;
+  color:#6b7280;
+}
+
+.testing-card-left{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+
+.testing-toggle-group{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
 .saved-area-table-wrap{
   max-height:180px;
   overflow:auto;

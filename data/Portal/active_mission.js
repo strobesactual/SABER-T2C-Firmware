@@ -81,6 +81,7 @@ const MAX_POINTS = 10;
 let createPolyDraft = [];
 let keepOutPolygons = [];
 let remainInPolygon = [];
+let remainInLabel = "";
 let currentGeofenceDoc = { keep_out: [], stay_in: [], lines: [] };
 let lastStatus = null;
 let suaCatalog = [];
@@ -92,8 +93,15 @@ let suaBin = null;
 let suaStringOffset = 0;
 let suaGeomOffset = 0;
 let selectedSuaId = "";
+let suaAsOf = "";
+let containedEnabled = true;
+let exclusionEnabled = true;
 
-const MAX_KEEP_OUT = 5;
+let prebuiltAreas = [];
+let selectedPrebuiltId = "";
+const keepOutFromPrebuilt = new Map();
+
+const MAX_KEEP_OUT = 6;
 const ARC_STEP_M = 1000;
 
 function renderPointList(containerId, points) {
@@ -335,44 +343,32 @@ function previewPolygonPoints(poly, limit = 20) {
 }
 
 function renderSavedPolygons() {
-  const keepOutEl = document.getElementById("keepOutSaved");
-  const remainEl = document.getElementById("remainInSaved");
-
-  if (keepOutEl) {
-    if (keepOutPolygons.length === 0) {
-      keepOutEl.innerHTML = '<div class="muted">No polygons saved.</div>';
+  const containedPill = document.getElementById("containedPill");
+  if (containedPill) {
+    if (remainInPolygon.length > 0) {
+      containedPill.textContent = remainInLabel || "Unnamed Contained";
     } else {
-      keepOutEl.innerHTML = keepOutPolygons
-        .map((poly, idx) => `
-          <div class="saved-poly-card">
-            <div class="saved-poly-title">Keep-out ${idx + 1}</div>
-            ${previewPolygonPoints(poly).map((pt, i) => pt ? `
-              <div class="saved-poly-point">${i + 1}. ${formatPointValue(pt[0])}, ${formatPointValue(pt[1])}</div>
-            ` : `
-              <div class="saved-poly-point">...</div>
-            `).join("")}
-          </div>
-        `)
-        .join("");
+      containedPill.textContent = "No selection";
     }
   }
 
-  if (remainEl) {
-    if (remainInPolygon.length === 0) {
-      remainEl.innerHTML = '<div class="muted">No polygon saved.</div>';
+  const exclusionPills = [
+    document.getElementById("exclusionPill1"),
+    document.getElementById("exclusionPill2"),
+    document.getElementById("exclusionPill3"),
+    document.getElementById("exclusionPill4"),
+    document.getElementById("exclusionPill5"),
+    document.getElementById("exclusionPill6"),
+  ];
+  exclusionPills.forEach((pill, idx) => {
+    if (!pill) return;
+    const entry = keepOutPolygons[idx];
+    if (entry) {
+      pill.textContent = entry.label || `Unnamed Exclusion ${idx + 1}`;
     } else {
-      remainEl.innerHTML = `
-        <div class="saved-poly-card">
-          <div class="saved-poly-title">Remain-in</div>
-          ${previewPolygonPoints(remainInPolygon).map((pt, i) => pt ? `
-            <div class="saved-poly-point">${i + 1}. ${formatPointValue(pt[0])}, ${formatPointValue(pt[1])}</div>
-          ` : `
-            <div class="saved-poly-point">...</div>
-          `).join("")}
-        </div>
-      `;
+      pill.textContent = "--";
     }
-  }
+  });
 }
 
 function getTimedTotalSeconds() {
@@ -518,10 +514,16 @@ async function loadGeofence() {
   try {
     const doc = await apiGetGeofence();
     currentGeofenceDoc = doc || currentGeofenceDoc;
-    keepOutPolygons = (currentGeofenceDoc.keep_out || []).map((rule) => rule.polygon || []);
-    remainInPolygon = (currentGeofenceDoc.stay_in || [])[0]?.polygon || [];
+    keepOutPolygons = (currentGeofenceDoc.keep_out || []).map((rule) => ({
+      polygon: rule.polygon || [],
+      label: rule.label || rule.id || "",
+    }));
+    const stayIn = (currentGeofenceDoc.stay_in || [])[0];
+    remainInPolygon = stayIn?.polygon || [];
+    remainInLabel = stayIn?.label || stayIn?.id || "";
     keepOutFromSua.clear();
     remainInFromSua = null;
+    keepOutFromPrebuilt.clear();
     fillLineInputs(currentGeofenceDoc.lines || [], 4);
     for (let i = 1; i <= 4; i++) {
       const axis = document.getElementById(`line_axis_${i}`);
@@ -531,6 +533,7 @@ async function loadGeofence() {
     currentGeofenceDoc = { keep_out: [], stay_in: [], lines: [] };
     keepOutPolygons = [];
     remainInPolygon = [];
+    remainInLabel = "";
     fillLineInputs([], 4);
   }
 
@@ -564,6 +567,12 @@ async function loadSuaCatalog() {
   try {
     const idxBuf = await fetchFirstOk(["/sua_catalog.idx", "../sua_catalog.idx"]);
     suaBin = await fetchFirstOk(["/sua_catalog.bin", "../sua_catalog.bin"]);
+    try {
+      const meta = await fetchFirstOk(["/sua_catalog_meta.json", "../sua_catalog_meta.json"], "json");
+      suaAsOf = meta?.as_of || "";
+    } catch (e) {
+      suaAsOf = "";
+    }
 
     const idxView = new DataView(idxBuf);
     const binView = new DataView(suaBin);
@@ -635,9 +644,11 @@ function renderSuaList() {
     : suaCatalog;
 
   if (countEl) {
+    const total = suaCatalog.length;
+    const asOf = suaAsOf ? ` as of ${suaAsOf}` : "";
     countEl.textContent = query
-      ? `Showing ${filtered.length} of ${suaCatalog.length}`
-      : `${suaCatalog.length} areas`;
+      ? `Showing ${filtered.length} of ${total}${asOf}`
+      : `${total} areas${asOf}`;
   }
 
   if (!filtered.length) {
@@ -677,8 +688,8 @@ function updateSuaActionButtons() {
   if (!selectedSuaId) {
     remainBtn.disabled = true;
     keepBtn.disabled = true;
-    remainBtn.textContent = "Set as Remain-in boundary";
-    keepBtn.textContent = "Add to Keep-out boundaries";
+    remainBtn.textContent = "Set as Contained boundary";
+    keepBtn.textContent = "Add to Exclusion boundaries";
     return;
   }
 
@@ -686,13 +697,98 @@ function updateSuaActionButtons() {
   const keepSelected = keepOutFromSua.has(selectedSuaId);
   const keepDisabled = !keepSelected && keepOutPolygons.length >= MAX_KEEP_OUT;
 
-  remainBtn.disabled = false;
+  remainBtn.disabled = !containedEnabled;
+  keepBtn.disabled = !exclusionEnabled || keepDisabled;
+  remainBtn.textContent = remainSelected ? "Clear Contained boundary" : "Set as Contained boundary";
+  keepBtn.textContent = keepSelected ? "Remove from Exclusion" : "Add to Exclusion boundaries";
+}
+
+function parsePrebuiltCsv(text) {
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) return [];
+  const areas = [];
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(",").map((p) => p.trim());
+    if (parts.length < 3) continue;
+    const name = parts[0];
+    const coords = parts.slice(1).map((v) => Number(v));
+    const polygon = [];
+    for (let j = 0; j < coords.length - 1; j += 2) {
+      const lat = coords[j];
+      const lon = coords[j + 1];
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+      polygon.push([lat, lon]);
+    }
+    if (name && polygon.length >= 3) {
+      areas.push({ id: name, name, polygon });
+    }
+  }
+  return areas;
+}
+
+async function loadPrebuiltAreas() {
+  const select = document.getElementById("prebuiltSelect");
+  try {
+    const csv = await fetchFirstOk(["/prebuilt_areas.csv", "../prebuilt_areas.csv"], "text");
+    prebuiltAreas = parsePrebuiltCsv(csv);
+    renderPrebuiltList();
+  } catch (e) {
+    if (select) select.innerHTML = "<option>Failed to load areas.</option>";
+  }
+}
+
+function renderPrebuiltList() {
+  const select = document.getElementById("prebuiltSelect");
+  const countEl = document.getElementById("prebuiltCount");
+  if (!select) return;
+  select.innerHTML = "";
+
+  if (!prebuiltAreas.length) {
+    const opt = document.createElement("option");
+    opt.textContent = "No areas available.";
+    opt.disabled = true;
+    opt.selected = true;
+    select.appendChild(opt);
+    if (countEl) countEl.textContent = "";
+    updatePrebuiltButtons();
+    return;
+  }
+
+  if (!selectedPrebuiltId || !prebuiltAreas.some((a) => a.id === selectedPrebuiltId)) {
+    selectedPrebuiltId = prebuiltAreas[0].id;
+  }
+
+  prebuiltAreas.forEach((area) => {
+    const opt = document.createElement("option");
+    opt.value = area.id;
+    opt.textContent = area.name;
+    if (area.id === selectedPrebuiltId) opt.selected = true;
+    select.appendChild(opt);
+  });
+
+  if (countEl) countEl.textContent = `${prebuiltAreas.length} areas`;
+  updatePrebuiltButtons();
+}
+
+function updatePrebuiltButtons() {
+  const remainBtn = document.getElementById("prebuiltSetRemain");
+  const keepBtn = document.getElementById("prebuiltAddKeepOut");
+  if (!remainBtn || !keepBtn) return;
+
+  if (!selectedPrebuiltId) {
+    remainBtn.disabled = true;
+    keepBtn.disabled = true;
+    return;
+  }
+
+  remainBtn.disabled = !containedEnabled;
+  const keepSelected = keepOutFromPrebuilt.has(selectedPrebuiltId);
+  const keepDisabled = !exclusionEnabled || (!keepSelected && keepOutPolygons.length >= MAX_KEEP_OUT);
   keepBtn.disabled = keepDisabled;
-  remainBtn.textContent = remainSelected ? "Clear Remain-in boundary" : "Set as Remain-in boundary";
-  keepBtn.textContent = keepSelected ? "Remove from Keep-out" : "Add to Keep-out boundaries";
 }
 
 function applyRemainSelection(areaId, checked) {
+  if (!containedEnabled) return;
   const area = suaById.get(areaId);
   if (checked && area) {
     const parsed = parseAreaGeometry(area);
@@ -700,10 +796,12 @@ function applyRemainSelection(areaId, checked) {
     if (ring.length >= 3) {
       remainInFromSua = areaId;
       remainInPolygon = ring;
+      remainInLabel = suaNameById.get(areaId) || areaId;
     }
   } else if (remainInFromSua === areaId) {
     remainInFromSua = null;
     remainInPolygon = [];
+    remainInLabel = "";
   }
 
   renderSavedPolygons();
@@ -714,23 +812,25 @@ function applyRemainSelection(areaId, checked) {
 }
 
 function applyKeepSelection(areaId, checked) {
+  if (!exclusionEnabled) return;
   if (checked) {
     if (keepOutFromSua.has(areaId)) return;
-    if (keepOutPolygons.length >= MAX_KEEP_OUT) {
-      alert(`Only ${MAX_KEEP_OUT} keep-out areas are allowed.`);
+  if (keepOutPolygons.length >= MAX_KEEP_OUT) {
+      alert(`Only ${MAX_KEEP_OUT} exclusion areas are allowed.`);
       return;
     }
     const area = suaById.get(areaId);
     const parsed = parseAreaGeometry(area);
     const ring = parsed?.rings?.[0]?.polygon || [];
     if (ring.length >= 3) {
-      keepOutFromSua.set(areaId, ring);
-      keepOutPolygons.push(ring);
+      const entry = { polygon: ring, label: suaNameById.get(areaId) || areaId };
+      keepOutFromSua.set(areaId, entry);
+      keepOutPolygons.push(entry);
     }
   } else {
-    const ring = keepOutFromSua.get(areaId);
-    if (ring) {
-      keepOutPolygons = keepOutPolygons.filter((p) => p !== ring);
+    const entry = keepOutFromSua.get(areaId);
+    if (entry) {
+      keepOutPolygons = keepOutPolygons.filter((p) => p !== entry);
       keepOutFromSua.delete(areaId);
     }
   }
@@ -741,64 +841,125 @@ function applyKeepSelection(areaId, checked) {
   updateSuaActionButtons();
 }
 
+function applyPrebuiltRemain(areaId) {
+  if (!containedEnabled) return;
+  const area = prebuiltAreas.find((a) => a.id === areaId);
+  if (!area) return;
+  if (remainInPolygon.length) {
+    alert("Only one contained polygon is allowed.");
+    return;
+  }
+  if (remainInFromSua) {
+    alert("A pre-defined contained area is already selected.");
+    return;
+  }
+  remainInPolygon = area.polygon;
+  remainInLabel = area.name;
+  remainInFromSua = null;
+  renderSavedPolygons();
+  updateCounters();
+  updateSuaActionButtons();
+  updatePrebuiltButtons();
+  setRemainButtonsState();
+}
+
+function applyPrebuiltKeep(areaId) {
+  if (!exclusionEnabled) return;
+  if (keepOutPolygons.length >= MAX_KEEP_OUT) {
+    alert(`Only ${MAX_KEEP_OUT} exclusion areas are allowed.`);
+    return;
+  }
+  if (keepOutFromPrebuilt.has(areaId)) return;
+  const area = prebuiltAreas.find((a) => a.id === areaId);
+  if (!area) return;
+  const entry = { polygon: area.polygon, label: area.name };
+  keepOutFromPrebuilt.set(areaId, entry);
+  keepOutPolygons.push(entry);
+  renderSavedPolygons();
+  updateCounters();
+  updatePrebuiltButtons();
+}
+
 function wireEvents() {
   const createAdd = document.getElementById("createPolyAdd");
   const createRemain = document.getElementById("createSetRemain");
   const createKeep = document.getElementById("createAddKeepOut");
+  const labelInput = document.getElementById("createPolyLabel");
 
   if (createAdd) createAdd.addEventListener("click", () => {
     addPoint(createPolyDraft, "createPolyPoints");
   });
 
   if (createRemain) createRemain.addEventListener("click", () => {
+    if (!containedEnabled) {
+      alert("Contained termination is disabled.");
+      return;
+    }
     if (remainInPolygon.length) {
-      alert("Only one remain-in polygon is allowed.");
+      alert("Only one contained polygon is allowed.");
       return;
     }
     if (remainInFromSua) {
-      alert("A pre-defined remain-in area is already selected.");
+      alert("A pre-defined contained area is already selected.");
+      return;
+    }
+    const label = labelInput?.value?.trim() || "";
+    if (!label) {
+      alert("Please enter a label for this polygon.");
       return;
     }
     if (!validatePoints(createPolyDraft, "createPolyPoints")) return;
     const poly = pointsToPolygon(createPolyDraft);
     if (poly.length < 3) {
-      alert("Remain-in polygon requires at least 3 points.");
+      alert("Contained polygon requires at least 3 points.");
       return;
     }
     const area = Math.abs(polygonArea(poly));
     if (area === 0) {
-      alert("Remain-in polygon is invalid. Points must form a closed shape.");
+      alert("Contained polygon is invalid. Points must form a closed shape.");
       return;
     }
     closePolygon(poly);
     remainInPolygon = poly;
+    remainInLabel = label;
     createPolyDraft.length = 0;
     renderPointList("createPolyPoints", createPolyDraft);
+    if (labelInput) labelInput.value = "";
     renderSavedPolygons();
     updateCounters();
     setRemainButtonsState();
   });
 
   if (createKeep) createKeep.addEventListener("click", () => {
+    if (!exclusionEnabled) {
+      alert("Exclusion termination is disabled.");
+      return;
+    }
     if (keepOutPolygons.length >= MAX_KEEP_OUT) {
-      alert(`Only ${MAX_KEEP_OUT} keep-out areas are allowed.`);
+      alert(`Only ${MAX_KEEP_OUT} exclusion areas are allowed.`);
+      return;
+    }
+    const label = labelInput?.value?.trim() || "";
+    if (!label) {
+      alert("Please enter a label for this polygon.");
       return;
     }
     if (!validatePoints(createPolyDraft, "createPolyPoints")) return;
     const poly = pointsToPolygon(createPolyDraft);
     if (poly.length < 3) {
-      alert("Keep-out polygon requires at least 3 points.");
+      alert("Exclusion polygon requires at least 3 points.");
       return;
     }
     const area = Math.abs(polygonArea(poly));
     if (area === 0) {
-      alert("Keep-out polygon is invalid. Points must form a closed shape.");
+      alert("Exclusion polygon is invalid. Points must form a closed shape.");
       return;
     }
     closePolygon(poly);
-    keepOutPolygons.push(poly);
+    keepOutPolygons.push({ polygon: poly, label });
     createPolyDraft.length = 0;
     renderPointList("createPolyPoints", createPolyDraft);
+    if (labelInput) labelInput.value = "";
     renderSavedPolygons();
     updateCounters();
   });
@@ -822,6 +983,53 @@ function wireEvents() {
     });
   }
 
+  const containedToggle = document.getElementById("containedEnabled");
+  if (containedToggle) {
+    const card = document.getElementById("remainInBox");
+    const createBtn = document.getElementById("createSetRemain");
+    const apply = () => {
+      containedEnabled = !!containedToggle.checked;
+      if (!card) return;
+      card.classList.toggle("card-disabled", !containedEnabled);
+      if (createBtn) createBtn.disabled = !containedEnabled;
+      updateSuaActionButtons();
+      updatePrebuiltButtons();
+    };
+    containedToggle.addEventListener("change", apply);
+    apply();
+  }
+
+  const exclusionToggle = document.getElementById("exclusionEnabled");
+  if (exclusionToggle) {
+    const card = document.getElementById("keepOutBox");
+    const createBtn = document.getElementById("createAddKeepOut");
+    const apply = () => {
+      exclusionEnabled = !!exclusionToggle.checked;
+      if (!card) return;
+      card.classList.toggle("card-disabled", !exclusionEnabled);
+      if (createBtn) createBtn.disabled = !exclusionEnabled;
+      updateSuaActionButtons();
+      updatePrebuiltButtons();
+    };
+    exclusionToggle.addEventListener("change", apply);
+    apply();
+  }
+
+  const crossingToggle = document.getElementById("crossingEnabled");
+  if (crossingToggle) {
+    const card = document.getElementById("shallNotPassBox");
+    const apply = () => {
+      if (!card) return;
+      const enabled = !!crossingToggle.checked;
+      card.classList.toggle("card-disabled", !enabled);
+      card.querySelectorAll(".line-list input, .line-list select").forEach((el) => {
+        el.disabled = !enabled;
+      });
+    };
+    crossingToggle.addEventListener("change", apply);
+    apply();
+  }
+
   for (let i = 1; i <= 4; i++) {
     const value = document.getElementById(`line_value_${i}`);
     const axis = document.getElementById(`line_axis_${i}`);
@@ -843,17 +1051,18 @@ function wireEvents() {
 
 function onSaveClick() {
   if (!validateLineRows(4)) {
-    alert("Each shall-not-pass line must include a value between -180 and 180.");
+    alert("Each crossing line must include a value between -180 and 180.");
     return;
   }
 
-  const keepOutRule = keepOutPolygons.map((poly, idx) => ({
+  const keepOutRule = keepOutPolygons.map((entry, idx) => ({
     id: `KeepOut-${idx + 1}`,
-    polygon: poly,
+    label: entry.label || "",
+    polygon: entry.polygon,
   }));
 
   const stayInRule = remainInPolygon.length
-    ? [{ id: "StayIn", polygon: remainInPolygon }]
+    ? [{ id: "StayIn", label: remainInLabel || "", polygon: remainInPolygon }]
     : [];
 
   currentGeofenceDoc = {
@@ -875,7 +1084,7 @@ function onSaveClick() {
   const missionRecord = {
     id: missionId,
     name: missionId,
-    description: `Timer(min): ${timeKillMin} | Keep-out: ${keepOutPolygons.length} | Remain-in: ${remainInPolygon.length ? 1 : 0} | Lines: ${collectLines(4).length}`,
+    description: `Timer(min): ${timeKillMin} | Exclusion: ${keepOutPolygons.length} | Contained: ${remainInPolygon.length ? 1 : 0} | Lines: ${collectLines(4).length}`,
   };
 
   Promise.all([
@@ -920,6 +1129,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadConfig();
   loadGeofence();
   loadSuaCatalog();
+  loadPrebuiltAreas();
 
   setInterval(loadStatus, 2000);
 
@@ -959,6 +1169,30 @@ document.addEventListener("DOMContentLoaded", () => {
       updateSelectedAreas();
     });
   }
+
+  const prebuiltSelect = document.getElementById("prebuiltSelect");
+  if (prebuiltSelect) {
+    prebuiltSelect.addEventListener("change", () => {
+      selectedPrebuiltId = prebuiltSelect.value || "";
+      updatePrebuiltButtons();
+    });
+  }
+
+  const prebuiltRemain = document.getElementById("prebuiltSetRemain");
+  if (prebuiltRemain) {
+    prebuiltRemain.addEventListener("click", () => {
+      if (!selectedPrebuiltId) return;
+      applyPrebuiltRemain(selectedPrebuiltId);
+    });
+  }
+
+  const prebuiltKeep = document.getElementById("prebuiltAddKeepOut");
+  if (prebuiltKeep) {
+    prebuiltKeep.addEventListener("click", () => {
+      if (!selectedPrebuiltId) return;
+      applyPrebuiltKeep(selectedPrebuiltId);
+    });
+  }
 });
 
 function updateSelectedAreas() {
@@ -968,24 +1202,12 @@ function updateSelectedAreas() {
   const selectedRemain = remainInFromSua
     ? [suaNameById.get(remainInFromSua) || remainInFromSua]
     : [];
-  const remainOut = document.getElementById("selectedRemainIn");
-  if (remainOut) {
-    remainOut.textContent = selectedRemain.length ? selectedRemain[0] : "None selected.";
-  }
-  const keepOut = document.getElementById("selectedKeepOut");
-  if (keepOut) {
-    keepOut.textContent = selectedKeep.length ? selectedKeep.join(", ") : "None selected.";
-  }
   setRemainPredefinedState(selectedRemain.length > 0);
 }
 
 function setRemainPredefinedState(hasSelection) {
   const remainBtn = document.getElementById("createSetRemain");
   if (remainBtn) remainBtn.disabled = hasSelection;
-  const remainSaved = document.getElementById("remainInSaved");
-  if (remainSaved && hasSelection) {
-    remainSaved.innerHTML = '<div class="muted">Pre-defined area already selected</div>';
-  }
 }
 
 function updateAxisLabel(axisEl) {
@@ -1014,9 +1236,7 @@ function polygonArea(poly) {
 }
 
 function setRemainButtonsState() {
-  const remainAdd = document.getElementById("createPolyAdd");
   const remainSave = document.getElementById("createSetRemain");
-  const locked = remainInPolygon.length > 0;
-  if (remainAdd) remainAdd.disabled = locked;
+  const locked = remainInPolygon.length > 0 || !containedEnabled;
   if (remainSave) remainSave.disabled = locked;
 }
