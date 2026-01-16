@@ -31,7 +31,7 @@ static uint32_t lastConfigCheckMs = 0;
 static bool defaultCallsignApplied = false;
 static bool configDisplayDirty = false;
 
-static ConfigStore portalConfig("/config.json");
+static ConfigStore portalConfig("/mission_active.json");
 static String cachedCallsign = "";
 static String cachedBalloonType = "";
 

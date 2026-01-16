@@ -699,6 +699,26 @@ select{
   gap:12px;
 }
 
+#keepOutBox{
+  align-items:stretch;
+}
+
+#keepOutBox .card-left{
+  display:flex;
+  flex-direction:column;
+}
+
+#keepOutBox .card-right{
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  align-self:stretch;
+}
+
+#keepOutBox .saved-poly-block{
+  margin-top:auto;
+}
+
 .selected-area-block{
   margin-top:12px;
 }
@@ -714,6 +734,63 @@ select{
 
 .selected-area-list{
   font-size:14px;
+}
+
+.create-poly-actions{
+  justify-content:flex-start;
+  gap:10px;
+}
+
+.sua-search{
+  margin-top:16px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.sua-search input{
+  width:var(--box-medium-width);
+  max-width:100%;
+}
+
+.sua-count{
+  margin-top:10px;
+  font-size:13px;
+}
+
+.sua-list-row{
+  margin-top:8px;
+  display:flex;
+  gap:16px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+}
+
+.sua-select{
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:6px;
+  background:#fff;
+  max-height:240px;
+  width:50%;
+  min-width:240px;
+}
+
+.sua-actions-side{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-width:220px;
+}
+
+.sua-select option{
+  padding:6px 8px;
+  line-height:1.6;
+}
+
+.btn-small{
+  padding:6px 10px;
+  font-size:12px;
 }
 
 
@@ -760,6 +837,10 @@ select{
   display:flex;
   gap:12px;
   margin-top:12px;
+}
+
+.point-actions-left{
+  margin-top:auto;
 }
 
 .tt-total-row{

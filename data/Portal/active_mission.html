@@ -22,7 +22,7 @@
 
     <div class="topbar-actions">
       <span id="saveFlag" class="save-flag" aria-live="polite"></span>
-      <button id="saveActiveMission" class="btn btn-primary" type="button">Save</button>
+      <button id="saveActiveMission" class="btn btn-primary" type="button">Save Mission</button>
     </div>
   </header>
 
@@ -43,11 +43,15 @@
             <label for="amMissionCallsign">Callsign</label>
             <input id="amMissionCallsign" class="box-medium box-display" type="text" placeholder="--" readonly />
           </div>
+          <div class="field mission-id-field">
+            <label for="amSatcomId">SATCOM ID</label>
+            <input id="amSatcomId" class="box-medium box-display" type="text" placeholder="--" readonly />
+          </div>
         </div>
 
         <div class="mission-note-row">
-          <span class="mission-note">Termination trigger count</span>
           <input id="timedPill" class="box-narrow box-display box-center" type="text" value="0" readonly />
+          <span class="mission-note">Termination triggers</span>
         </div>
 
         <div class="toggle mission-toggle">
@@ -105,52 +109,45 @@
       <section class="card mission-box" id="predefinedAreasBox">
         <div class="card-left">
           <div class="card-title">
-            <h2>Pre-defined Areas</h2>
+            <h2>FAA Special Use Airspace</h2>
           </div>
-          <p class="muted">Select an area to apply to the mission profile database.</p>
+          <p class="muted">Select up to 5 areas from the FAA SUA database.</p>
         </div>
 
         <div class="card-right">
-          <div class="selected-area-block">
-            <div class="selected-area-title">Remain-in Selection</div>
-            <div id="selectedRemainIn" class="selected-area-list muted">None selected.</div>
+          <div class="sua-search">
+            <label for="suaSearch">Search areas</label>
+            <input id="suaSearch" class="box-medium box-editable" type="text" placeholder="Search by name or ID" />
           </div>
 
-          <div class="selected-area-block">
-            <div class="selected-area-title">Keep-out Selections</div>
-            <div id="selectedKeepOut" class="selected-area-list muted">None selected.</div>
-          </div>
+          <div id="suaCount" class="sua-count muted"></div>
 
-          <div class="saved-area-table-wrap">
-            <table class="saved-area-table">
-              <thead>
-                <tr>
-                  <th>Remain In</th>
-                  <th>Keep out</th>
-                  <th>Area ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  data-waypoint1-lat="37°28′00″N"
-                  data-waypoint1-lon="116°00′03″W"
-                  data-waypoint2-lat="37°28′00″N"
-                  data-waypoint2-lon="115°35′03″W"
-                  data-waypoint3-lat="37°06′00″N"
-                  data-waypoint3-lon="115°35′03″W"
-                  data-waypoint4-lat="37°06′00″N"
-                  data-waypoint4-lon="116°00′03″W"
-                >
-                  <td>
-                    <input class="area-select-remain" type="checkbox" data-area-name="Area 51 / R-4808N" />
-                  </td>
-                  <td>
-                    <input class="area-select-keep" type="checkbox" data-area-name="Area 51 / R-4808N" />
-                  </td>
-                  <td>Area 51 / R-4808N</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="sua-list-row">
+            <select id="suaSelect" class="sua-select" size="6">
+              <option>Loading areas…</option>
+            </select>
+            <div class="sua-actions-side">
+              <button id="suaSetRemain" class="btn btn-blue btn-small" type="button">Set as Remain-in boundary</button>
+              <button id="suaAddKeepOut" class="btn btn-green btn-small" type="button">Add to Keep-out boundaries</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card mission-box" id="createPolygonsBox">
+        <div class="card-left">
+          <div class="box-header">
+            <h2>Create polygons</h2>
+            <p class="muted">Use manual points to build custom remain-in or keep-out boundaries.</p>
+          </div>
+        </div>
+
+        <div class="card-right">
+          <div id="createPolyPoints" class="point-list"></div>
+          <div class="point-actions create-poly-actions">
+            <button id="createPolyAdd" class="btn btn-blue" type="button">Add</button>
+            <button id="createSetRemain" class="btn btn-blue btn-small" type="button">Set as Remain-in boundary</button>
+            <button id="createAddKeepOut" class="btn btn-green btn-small" type="button">Add to Keep-out boundaries</button>
           </div>
         </div>
       </section>
@@ -159,13 +156,6 @@
         <div class="box-header">
           <h2>Remain-in Termination</h2>
           <p class="muted tight">Create a single polygon to define the balloon flight area. Leaving this polygon will trigger termination.</p>
-          <p class="muted">Add points, then save the polygon.</p>
-        </div>
-
-        <div id="remainInPoints" class="point-list"></div>
-        <div class="point-actions">
-          <button id="remainInAdd" class="btn btn-blue" type="button">Add</button>
-          <button id="remainInSave" class="btn btn-green" type="button">Save Polygon</button>
         </div>
 
         <div class="saved-poly-block">
@@ -175,19 +165,14 @@
       </section>
 
       <section class="card mission-box" id="keepOutBox">
-        <div class="box-header">
-          <h2>Keep-out Termination</h2>
-          <p class="muted tight">Add multiple polygons that trigger termination upon entry.</p>
-          <p class="muted">Add points, then save the polygon.</p>
+        <div class="card-left">
+          <div class="box-header">
+            <h2>Keep-out Termination</h2>
+            <p class="muted tight">Add multiple polygons that trigger termination upon entry.</p>
+          </div>
         </div>
 
-        <div class="keepout-right">
-          <div id="keepOutPoints" class="point-list"></div>
-          <div class="point-actions">
-            <button id="keepOutAdd" class="btn btn-blue" type="button">Add</button>
-            <button id="keepOutSave" class="btn btn-green" type="button">Save Polygon</button>
-          </div>
-
+        <div class="card-right">
           <div class="saved-poly-block">
             <h3>Saved Polygons</h3>
             <div id="keepOutSaved" class="saved-poly-list"></div>

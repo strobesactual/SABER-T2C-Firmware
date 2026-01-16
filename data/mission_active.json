@@ -1,0 +1,10 @@
+{
+  "missionId": "",
+  "callsign": "",
+  "balloonType": "",
+  "satcom_id": "",
+  "time_kill_min": 0,
+  "triggerCount": 0,
+  "note": "",
+  "autoErase": false
+}

@@ -1,15 +1,10 @@
 async function fetchMissions() {
-  // Later: ESP32 endpoint, e.g. GET /api/missions from SQLite
-  // For now: fallback demo data so UI works immediately
   try {
     const r = await fetch("/api/missions");
     if (!r.ok) throw new Error("no api");
     return await r.json();
   } catch {
-    return [
-      { id: 1, name: "Demo Mission A", description: "Placeholder mission" },
-      { id: 2, name: "Demo Mission B", description: "Placeholder mission" },
-    ];
+    return [];
   }
 }
 

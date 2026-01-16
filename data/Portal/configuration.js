@@ -1,4 +1,4 @@
-// data/Portal/configuration.js
+// data/portal/configuration.js
 
 async function apiGetConfig() {
   const r = await fetch("/api/config", { cache: "no-store" });
@@ -143,15 +143,15 @@ function setMissionFields(status) {
   const hold = (status?.holdState || "").toString().trim().toUpperCase();
   const statusText = hold === "HOLD" ? "HOLD" : "READY";
   const triggerCount = Number(status?.triggerCount);
-  const totalSec = Number(status?.ttTotalSec);
-  const timerTrigger = Number.isFinite(totalSec) && totalSec > 60 ? 1 : 0;
+  const timeKillMin = Number(status?.time_kill_min);
+  const timerTrigger = Number.isFinite(timeKillMin) && timeKillMin > 0 ? 1 : 0;
   const geoCountText = Number.isFinite(triggerCount)
     ? Math.max(triggerCount - timerTrigger, 0)
     : 0;
   const lora = (status?.lora || "").toString().trim();
   const batt = Number(status?.battery);
   const battText = Number.isFinite(batt) && batt >= 0 ? `${batt}%` : "--";
-  const minutes = Number(status?.ttTotalMin);
+  const minutes = Number(status?.time_kill_min);
   const minutesText = Number.isFinite(minutes) ? String(minutes).padStart(4, "0") : "0000";
 
   const statusEl = document.getElementById("missionStatus");
@@ -184,7 +184,6 @@ const FIELD_MAP_TEXT = {
 
 const FIELD_MAP_CHECK = {
   autoErase: "autoErase",
-  satcomMessages: "satcomMessages",
 };
 
 /* ---------- form helpers ---------- */
@@ -200,6 +199,7 @@ function fillForm(cfg) {
   for (const [id, key] of Object.entries(FIELD_MAP_CHECK)) {
     setCheck(id, cfg?.[key]);
   }
+  setCheck("satcomMessages", !!cfg?.satcom_id);
 }
 
 function readForm() {
