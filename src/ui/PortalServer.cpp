@@ -7,7 +7,9 @@
 
 #include "core/ConfigStore.h"
 #include "core/SystemStatus.h"
+#include "geofence/GeoFence.h"
 #include "gps/GPSControl.h"
+#include "mission/MissionController.h"
 #include "satcom/SatCom.h"
 
 static const char* AP_SSID = "SABER-T2C";
@@ -28,6 +30,10 @@ static void fillDefaults(JsonDocument& doc) {
   doc["satcom_id"] = "";
   doc["time_kill_min"] = 0;
   doc["triggerCount"] = 0;
+  doc["timed_enabled"] = false;
+  doc["contained_enabled"] = false;
+  doc["exclusion_enabled"] = false;
+  doc["crossing_enabled"] = false;
   doc["note"] = "";
   doc["autoErase"] = false;
 }
@@ -160,6 +166,16 @@ void begin() {
     request->send(200, "application/json", out);
   });
 
+  // GET test flags
+  server.on("/api/test", HTTP_GET, [](AsyncWebServerRequest *request) {
+    StaticJsonDocument<128> doc;
+    doc["force_geofence"] = GeoFence::forcedViolation();
+    doc["flight_mode"] = MissionController::testFlightMode();
+    String out;
+    serializeJson(doc, out);
+    request->send(200, "application/json", out);
+  });
+
   // GET current geofence config
   server.on("/api/geofence", HTTP_GET, [](AsyncWebServerRequest *request) {
     StaticJsonDocument<2048> doc;
@@ -201,6 +217,10 @@ void begin() {
       if (!doc.containsKey("satcom_id")) doc["satcom_id"] = "";
       if (!doc.containsKey("time_kill_min")) doc["time_kill_min"] = 0;
       if (!doc.containsKey("triggerCount")) doc["triggerCount"] = 0;
+      if (!doc.containsKey("timed_enabled")) doc["timed_enabled"] = false;
+      if (!doc.containsKey("contained_enabled")) doc["contained_enabled"] = false;
+      if (!doc.containsKey("exclusion_enabled")) doc["exclusion_enabled"] = false;
+      if (!doc.containsKey("crossing_enabled")) doc["crossing_enabled"] = false;
       if (!doc.containsKey("note"))       doc["note"] = "";
       if (!doc.containsKey("autoErase"))  doc["autoErase"] = false;
 
@@ -211,6 +231,10 @@ void begin() {
       doc["satcom_id"] = doc["satcom_id"].as<String>();
       doc["time_kill_min"] = doc["time_kill_min"].as<uint32_t>();
       doc["triggerCount"] = doc["triggerCount"].as<uint32_t>();
+      doc["timed_enabled"] = doc["timed_enabled"].as<bool>();
+      doc["contained_enabled"] = doc["contained_enabled"].as<bool>();
+      doc["exclusion_enabled"] = doc["exclusion_enabled"].as<bool>();
+      doc["crossing_enabled"] = doc["crossing_enabled"].as<bool>();
       doc["note"] = doc["note"].as<String>();
       doc["autoErase"] = doc["autoErase"].as<bool>();
       {
@@ -224,6 +248,36 @@ void begin() {
         request->send(500, "application/json", "{\"ok\":false,\"error\":\"save_failed\"}");
         return;
       }
+
+      request->send(200, "application/json", "{\"ok\":true}");
+    }
+  );
+
+  // POST test flags
+  server.on(
+    "/api/test",
+    HTTP_POST,
+    [](AsyncWebServerRequest *request) {},
+    NULL,
+    [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+      static String body;
+
+      if (index == 0) body = "";
+      body += String((char*)data).substring(0, len);
+
+      if (index + len != total) return;
+
+      StaticJsonDocument<128> doc;
+      DeserializationError err = deserializeJson(doc, body);
+      if (err) {
+        request->send(400, "application/json", "{\"ok\":false,\"error\":\"invalid_json\"}");
+        return;
+      }
+
+      const bool forceGeofence = doc["force_geofence"] | false;
+      const bool flightMode = doc["flight_mode"] | false;
+      GeoFence::setForcedViolation(forceGeofence);
+      MissionController::setTestFlightMode(flightMode);
 
       request->send(200, "application/json", "{\"ok\":true}");
     }

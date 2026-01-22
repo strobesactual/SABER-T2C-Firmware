@@ -9,6 +9,7 @@
 #include "sensors/BME280.h"
 #include "sensors/PMU_AXP2101.h"
 #include "geofence/GeoFence.h"
+#include "mission/MissionController.h"
 #include "termination/Termination.h"
 #include "core/ConfigStore.h"
 #include "core/SystemStatus.h"
@@ -120,6 +121,7 @@ void setup() {
   BME280Sensor::begin();
   PMU_AXP2101::begin();
   GeoFence::begin();
+  MissionController::begin();
 
   // ---------------- Optional: GPS bring-up (keep, but if it spams / blocks, comment it) ----------------
   GPSControl::begin();
@@ -310,4 +312,6 @@ void loop() {
       }
     }
   }
+
+  MissionController::update(now);
 }

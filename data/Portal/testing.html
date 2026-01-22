@@ -44,16 +44,42 @@
                 <input id="geofenceViolation" type="checkbox" />
                 <span class="slider"></span>
               </label>
-              <span>Geofence violation</span>
+              <span>Force geofence violation</span>
             </div>
           </div>
         </div>
 
-        <div class="card-right">
-          <div class="field tt-row">
-            <div>
-              <label for="gpsFlight">Mode</label>
-              <input id="gpsFlight" class="box-short box-display" type="text" placeholder="GROUND" readonly />
+      </section>
+
+      <section class="card mission-box" id="oledMirrorBox">
+        <div class="card-left">
+          <div class="box-header">
+            <h2>OLED mirror</h2>
+          </div>
+          <div class="oled-mirror">
+            <div class="oled-row">
+              <span class="oled-label">ID:</span>
+              <span class="oled-value" id="oledCallsign">--</span>
+              <span class="oled-right" id="oledBalloon">--</span>
+            </div>
+            <div class="oled-row">
+              <span class="oled-label">GPS:</span>
+              <span class="oled-value" id="oledGps">--</span>
+              <span class="oled-right" id="oledFlight">--</span>
+            </div>
+            <div class="oled-row">
+              <span class="oled-label">SATCOM:</span>
+              <span class="oled-value" id="oledSatcom">--</span>
+            </div>
+            <div class="oled-row">
+              <span class="oled-label">LoRa:</span>
+              <span class="oled-value" id="oledLora">--</span>
+            </div>
+            <div class="oled-row">
+              <span class="oled-label">STATUS:</span>
+              <span class="oled-value" id="oledHold">--</span>
+              <span class="oled-center" id="oledGeo">--</span>
+              <span class="oled-right" id="oledBattery">--</span>
             </div>
           </div>
         </div>

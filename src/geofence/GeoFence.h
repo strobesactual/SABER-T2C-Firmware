@@ -17,6 +17,10 @@ namespace GeoFence {
   // Evaluate current position. Returns true if any violations.
   bool update(double lat, double lon);
 
+  // Test hook to force a geofence violation regardless of position.
+  void setForcedViolation(bool enabled);
+  bool forcedViolation();
+
   size_t ruleCount();
   size_t violationCount();
   const Violation &violation(size_t idx);

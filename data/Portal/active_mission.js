@@ -504,6 +504,26 @@ async function loadConfig() {
       const totalEl = document.getElementById("tt_total");
       if (totalEl) totalEl.value = String(cfg.time_kill_min);
     }
+    const timedToggle = document.getElementById("timedEnabled");
+    if (timedToggle) {
+      timedToggle.checked = !!cfg?.timed_enabled;
+      timedToggle.dispatchEvent(new Event("change"));
+    }
+    const containedToggle = document.getElementById("containedEnabled");
+    if (containedToggle) {
+      containedToggle.checked = !!cfg?.contained_enabled;
+      containedToggle.dispatchEvent(new Event("change"));
+    }
+    const exclusionToggle = document.getElementById("exclusionEnabled");
+    if (exclusionToggle) {
+      exclusionToggle.checked = !!cfg?.exclusion_enabled;
+      exclusionToggle.dispatchEvent(new Event("change"));
+    }
+    const crossingToggle = document.getElementById("crossingEnabled");
+    if (crossingToggle) {
+      crossingToggle.checked = !!cfg?.crossing_enabled;
+      crossingToggle.dispatchEvent(new Event("change"));
+    }
   } catch (e) {
     const input = document.getElementById("missionId");
     if (input) input.value = "";
@@ -1095,6 +1115,10 @@ function onSaveClick() {
       cfg.satcom_id = satcomId;
       cfg.time_kill_min = timeKillMin;
       cfg.triggerCount = triggerCount;
+      cfg.timed_enabled = !!document.getElementById("timedEnabled")?.checked;
+      cfg.contained_enabled = !!document.getElementById("containedEnabled")?.checked;
+      cfg.exclusion_enabled = !!document.getElementById("exclusionEnabled")?.checked;
+      cfg.crossing_enabled = !!document.getElementById("crossingEnabled")?.checked;
       return apiSaveConfig(cfg);
     })(),
     apiSaveMission(missionRecord),
@@ -1120,11 +1144,6 @@ document.addEventListener("DOMContentLoaded", () => {
   wireEvents();
   updateTimedTotal();
   updateCounters();
-  const timedToggle = document.getElementById("timedEnabled");
-  if (timedToggle) {
-    timedToggle.checked = false;
-    setTimedEnabled(false);
-  }
   loadStatus();
   loadConfig();
   loadGeofence();

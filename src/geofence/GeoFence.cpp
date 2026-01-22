@@ -36,6 +36,7 @@ namespace {
   std::vector<GeoFence::Violation> s_violations;
 
   bool s_loaded = false;
+  bool s_force_violation = false;
   bool s_has_prev = false;
   double s_prev_lat = 0.0;
   double s_prev_lon = 0.0;
@@ -179,6 +180,17 @@ bool reload(const char *path)
 bool update(double lat, double lon)
 {
   s_violations.clear();
+  if (s_force_violation) {
+    GeoFence::Violation v;
+    v.id = "force";
+    v.type = "test";
+    v.detail = "forced geofence violation";
+    s_violations.push_back(v);
+    s_prev_lat = lat;
+    s_prev_lon = lon;
+    s_has_prev = true;
+    return true;
+  }
   if (!s_loaded) {
     s_prev_lat = lat;
     s_prev_lon = lon;
@@ -212,6 +224,19 @@ bool update(double lat, double lon)
   s_has_prev = true;
 
   return !s_violations.empty();
+}
+
+void setForcedViolation(bool enabled)
+{
+  s_force_violation = enabled;
+  if (!s_force_violation) {
+    s_violations.clear();
+  }
+}
+
+bool forcedViolation()
+{
+  return s_force_violation;
 }
 
 size_t violationCount()
