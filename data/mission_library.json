@@ -1,3 +1,34 @@
 {
-  "missions": []
+  "missions": [
+    {
+      "id": "TEST_AUS_1",
+      "name": "Austin test mission 1",
+      "description": "Basic testing done from Austin workshop",
+      "timed_enabled": true,
+      "contained_enabled": true,
+      "exclusion_enabled": false,
+      "crossing_enabled": false,
+      "callsign": "ROMN05",
+      "time_kill_min": 10,
+      "balloonType": "SABER-50-012",
+      "autoErase": false,
+      "geofence": {
+        "keep_out": [],
+        "stay_in": [
+          {
+            "id": "Austin Courtyard",
+            "label": "Austin Courtyard",
+            "polygon": [
+              [30.3581744, -97.7895736],
+              [30.3516383, -97.7929639],
+              [30.3529344, -97.78378],
+              [30.3556193, -97.7835655],
+              [30.3581744, -97.7895736]
+            ]
+          }
+        ],
+        "lines": []
+      }
+    }
+  ]
 }

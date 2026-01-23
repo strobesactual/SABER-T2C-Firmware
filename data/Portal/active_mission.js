@@ -77,6 +77,62 @@ function setText(id, v) {
   }
 }
 
+function loadMissionPrefill() {
+  try {
+    const raw = localStorage.getItem("saber_active_mission_prefill");
+    if (!raw) return null;
+    localStorage.removeItem("saber_active_mission_prefill");
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
+async function applyMissionPrefill(mission) {
+  if (!mission) return;
+  const input = document.getElementById("missionId");
+  if (input && mission.id != null) input.value = String(mission.id);
+
+  const toggleMap = [
+    ["timedEnabled", "timed_enabled"],
+    ["containedEnabled", "contained_enabled"],
+    ["exclusionEnabled", "exclusion_enabled"],
+    ["crossingEnabled", "crossing_enabled"],
+  ];
+
+  toggleMap.forEach(([id, key]) => {
+    if (!Object.prototype.hasOwnProperty.call(mission, key)) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.checked = !!mission[key];
+    el.dispatchEvent(new Event("change"));
+  });
+
+  try {
+    const cfg = await apiGetConfig();
+    if (mission.id != null) cfg.missionId = String(mission.id);
+    if (Object.prototype.hasOwnProperty.call(mission, "timed_enabled")) {
+      cfg.timed_enabled = !!mission.timed_enabled;
+    }
+    if (Object.prototype.hasOwnProperty.call(mission, "contained_enabled")) {
+      cfg.contained_enabled = !!mission.contained_enabled;
+    }
+    if (Object.prototype.hasOwnProperty.call(mission, "exclusion_enabled")) {
+      cfg.exclusion_enabled = !!mission.exclusion_enabled;
+    }
+    if (Object.prototype.hasOwnProperty.call(mission, "crossing_enabled")) {
+      cfg.crossing_enabled = !!mission.crossing_enabled;
+    }
+    await apiSaveConfig(cfg);
+    if (mission.geofence) {
+      await apiSaveGeofence(mission.geofence);
+      await loadGeofence();
+    }
+  } catch (e) {
+    showSaveFlag("Failed to apply mission config", true);
+  }
+}
+
 const MAX_POINTS = 10;
 let createPolyDraft = [];
 let keepOutPolygons = [];
@@ -1105,6 +1161,11 @@ function onSaveClick() {
     id: missionId,
     name: missionId,
     description: `Timer(min): ${timeKillMin} | Exclusion: ${keepOutPolygons.length} | Contained: ${remainInPolygon.length ? 1 : 0} | Lines: ${collectLines(4).length}`,
+    timed_enabled: !!document.getElementById("timedEnabled")?.checked,
+    contained_enabled: !!document.getElementById("containedEnabled")?.checked,
+    exclusion_enabled: !!document.getElementById("exclusionEnabled")?.checked,
+    crossing_enabled: !!document.getElementById("crossingEnabled")?.checked,
+    geofence: currentGeofenceDoc,
   };
 
   Promise.all([
@@ -1145,7 +1206,8 @@ document.addEventListener("DOMContentLoaded", () => {
   updateTimedTotal();
   updateCounters();
   loadStatus();
-  loadConfig();
+  const missionPrefill = loadMissionPrefill();
+  loadConfig().then(() => applyMissionPrefill(missionPrefill));
   loadGeofence();
   loadSuaCatalog();
   loadPrebuiltAreas();

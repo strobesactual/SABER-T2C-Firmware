@@ -6,7 +6,7 @@ namespace {
   char s_balloonType[16] = "";
   char s_holdState[12] = "HOLD";
   char s_flightState[12] = "GND";
-  char s_loraState[12] = "INIT";
+  char s_loraState[12] = "Disabled";
   char s_satcomState[20] = "INIT";
   int s_batteryPct = -1;
   uint8_t s_geoCount = 0;

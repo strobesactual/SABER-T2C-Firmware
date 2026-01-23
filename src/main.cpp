@@ -143,11 +143,12 @@ void setup() {
   display_set_hold_state("HOLD");
   display_set_flight_state("GROUND");
   display_set_balloon_type("");
+  display_set_lora("Disabled");
   SystemStatus::setCallsign("NONE");
   SystemStatus::setHoldState("HOLD");
   SystemStatus::setFlightState("GROUND");
   SystemStatus::setBalloonType("");
-  SystemStatus::setLoraState("INIT");
+  SystemStatus::setLoraState("Disabled");
   cachedBalloonType = "";
 
   if (portalConfig.begin()) {

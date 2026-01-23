@@ -13,7 +13,7 @@
 #include "satcom/SatCom.h"
 
 static const char* AP_SSID = "SABER-T2C";
-static const char* AP_PASS = "saber1234";
+static const char* AP_PASS = "balloon";
 static const char* GEOFENCE_PATH = "/geofence.json";
 static const char* GEOFENCE_DB_PATH = "/geofence_db.json";
 static const char* MISSION_LIBRARY_PATH = "/mission_library.json";
@@ -321,18 +321,25 @@ void begin() {
 
   // GET missions list
   server.on("/api/missions", HTTP_GET, [](AsyncWebServerRequest *request) {
-    StaticJsonDocument<4096> doc;
+    StaticJsonDocument<8192> doc;
     if (!loadJsonFile(MISSION_LIBRARY_PATH, doc)) {
       fillMissionsDefaults(doc);
     }
     JsonArray arr = doc["missions"].as<JsonArray>();
-    StaticJsonDocument<4096> outDoc;
+    StaticJsonDocument<8192> outDoc;
     JsonArray outArr = outDoc.to<JsonArray>();
     for (JsonObject m : arr) {
       JsonObject o = outArr.createNestedObject();
       o["id"] = m["id"] | "";
       o["name"] = m["name"] | "";
       o["description"] = m["description"] | "";
+      o["timed_enabled"] = m["timed_enabled"] | false;
+      o["contained_enabled"] = m["contained_enabled"] | false;
+      o["exclusion_enabled"] = m["exclusion_enabled"] | false;
+      o["crossing_enabled"] = m["crossing_enabled"] | false;
+      if (m.containsKey("geofence")) {
+        o["geofence"] = m["geofence"];
+      }
     }
     String out;
     serializeJson(outArr, out);
@@ -363,12 +370,21 @@ void begin() {
       const char *id = incoming["id"] | "";
       const char *name = incoming["name"] | "";
       const char *description = incoming["description"] | "";
+      const bool hasTimed = incoming.containsKey("timed_enabled");
+      const bool hasContained = incoming.containsKey("contained_enabled");
+      const bool hasExclusion = incoming.containsKey("exclusion_enabled");
+      const bool hasCrossing = incoming.containsKey("crossing_enabled");
+      const bool timedEnabled = incoming["timed_enabled"] | false;
+      const bool containedEnabled = incoming["contained_enabled"] | false;
+      const bool exclusionEnabled = incoming["exclusion_enabled"] | false;
+      const bool crossingEnabled = incoming["crossing_enabled"] | false;
+      const bool hasGeofence = incoming.containsKey("geofence");
       if (strlen(id) == 0) {
         request->send(400, "application/json", "{\"ok\":false,\"error\":\"missing_id\"}");
         return;
       }
 
-      StaticJsonDocument<4096> doc;
+      StaticJsonDocument<8192> doc;
       if (!loadJsonFile(MISSION_LIBRARY_PATH, doc)) {
         fillMissionsDefaults(doc);
       }
@@ -378,6 +394,11 @@ void begin() {
         if (String(m["id"] | "") == String(id)) {
           m["name"] = name;
           m["description"] = description;
+          if (hasTimed) m["timed_enabled"] = timedEnabled;
+          if (hasContained) m["contained_enabled"] = containedEnabled;
+          if (hasExclusion) m["exclusion_enabled"] = exclusionEnabled;
+          if (hasCrossing) m["crossing_enabled"] = crossingEnabled;
+          if (hasGeofence) m["geofence"] = incoming["geofence"];
           found = true;
           break;
         }
@@ -387,6 +408,11 @@ void begin() {
         m["id"] = id;
         m["name"] = name;
         m["description"] = description;
+        m["timed_enabled"] = timedEnabled;
+        m["contained_enabled"] = containedEnabled;
+        m["exclusion_enabled"] = exclusionEnabled;
+        m["crossing_enabled"] = crossingEnabled;
+        if (hasGeofence) m["geofence"] = incoming["geofence"];
       }
 
       if (!saveJsonFile(MISSION_LIBRARY_PATH, doc)) {

@@ -534,6 +534,33 @@ select{
   margin:0;
 }
 
+.map-stack{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.map-frame{
+  margin-top:8px;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#fff;
+}
+
+.map-canvas{
+  display:block;
+  width:100%;
+  height:auto;
+  border-radius:8px;
+}
+
+.map-note{
+  margin:0;
+  color:var(--muted);
+  line-height:1.45;
+}
+
 .mission-id-field input{
   max-width:260px;
 }
@@ -710,6 +737,7 @@ select{
 
 .oled-mirror{
   margin-top:8px;
+  width:min(100%, calc(23ch + 28px));
   padding:12px 14px;
   border-radius:14px;
   background:#0b0f0c;

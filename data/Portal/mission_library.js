@@ -4,17 +4,53 @@ async function fetchMissions() {
     if (!r.ok) throw new Error("no api");
     return await r.json();
   } catch {
-    return [];
+    try {
+      const r = await fetch("../mission_library.json", { cache: "no-store" });
+      if (!r.ok) throw new Error("no api");
+      const data = await r.json();
+      return data?.missions || [];
+    } catch {
+      return [];
+    }
   }
 }
 
-function render(missions) {
+async function fetchConfig() {
+  try {
+    const r = await fetch("/api/config", { cache: "no-store" });
+    if (!r.ok) throw new Error("no api");
+    return await r.json();
+  } catch {
+    return {};
+  }
+}
+
+async function fetchGeofence() {
+  try {
+    const r = await fetch("/api/geofence", { cache: "no-store" });
+    if (!r.ok) throw new Error("no api");
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
+async function saveMission(mission) {
+  const r = await fetch("/api/missions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(mission),
+  });
+  if (!r.ok) throw new Error("save failed");
+}
+
+function render(missions, activeId) {
   const wrap = document.getElementById("missions");
 
   const rows = missions.map(m => `
     <div style="display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);">
       <!-- Leave space for ACTIVE button (green) -->
-      <button class="btn btn-green" style="visibility:hidden;">Active</button>
+      <button class="btn btn-green" style="visibility:${String(m.id) === String(activeId) ? "visible" : "hidden"};">Active</button>
 
       <!-- LOAD button (blue) -->
       <button class="btn btn-blue" data-load="${m.id}">Load</button>
@@ -44,4 +80,26 @@ function escapeHtml(s) {
   }[c]));
 }
 
-fetchMissions().then(render);
+Promise.all([fetchMissions(), fetchConfig(), fetchGeofence()]).then(async ([missions, cfg, geofence]) => {
+  const activeId = cfg?.missionId || "";
+  if (!missions.length) {
+    const seedId = activeId || "ACTIVE";
+    const seedMission = {
+      id: seedId,
+      name: seedId,
+      description: "Active mission snapshot",
+      timed_enabled: !!cfg?.timed_enabled,
+      contained_enabled: !!cfg?.contained_enabled,
+      exclusion_enabled: !!cfg?.exclusion_enabled,
+      crossing_enabled: !!cfg?.crossing_enabled,
+    };
+    if (geofence) seedMission.geofence = geofence;
+    try {
+      await saveMission(seedMission);
+      missions = await fetchMissions();
+    } catch {
+      // continue with empty list
+    }
+  }
+  render(missions, activeId || (missions[0]?.id ?? ""));
+});

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Map</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="./assets/Logo_Small.png" alt="SABER" />
+    </div>
+
+    <nav class="nav">
+      <a class="navlink" href="./configuration.html">Configuration</a>
+      <a class="navlink" href="./mission_library.html">Mission Library</a>
+      <a class="navlink" href="./active_mission.html">Active Mission</a>
+      <a class="navlink active" href="./map.html">Map</a>
+      <a class="navlink" href="./testing.html">Testing</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="mission-grid">
+      <div class="map-stack">
+        <div class="map-frame">
+          <canvas class="map-canvas" id="mapCanvas" aria-label="CONUS map with termination areas"></canvas>
+        </div>
+        <p class="map-note">Active termination areas are displayed above</p>
+      </div>
+    </div>
+  </main>
+  <script src="./map.js"></script>
+</body>
+</html>

@@ -2,6 +2,18 @@ function $(id) {
   return document.getElementById(id);
 }
 
+function requireTestPassword() {
+  const key = "testing-auth";
+  if (sessionStorage.getItem(key) === "ok") return true;
+  const pass = window.prompt("Enter password to access Testing");
+  if (pass === "austin") {
+    sessionStorage.setItem(key, "ok");
+    return true;
+  }
+  window.location.href = "./configuration.html";
+  return false;
+}
+
 function setText(id, value) {
   const el = $(id);
   if (!el) return;
@@ -94,6 +106,7 @@ async function refresh() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  if (!requireTestPassword()) return;
   const geoToggle = $("geofenceViolation");
   const flightToggle = $("flightModeEnabled");
 
