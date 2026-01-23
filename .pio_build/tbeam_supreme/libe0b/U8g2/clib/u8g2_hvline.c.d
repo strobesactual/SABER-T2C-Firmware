@@ -1,0 +1,6 @@
+.pio_build/tbeam_supreme/libe0b/U8g2/clib/u8g2_hvline.c.o: \
+ .pio/libdeps/tbeam_supreme/U8g2/src/clib/u8g2_hvline.c \
+ .pio/libdeps/tbeam_supreme/U8g2/src/clib/u8g2.h \
+ .pio/libdeps/tbeam_supreme/U8g2/src/clib/u8x8.h \
+ /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/newlib/platform_include/assert.h \
+ /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/qio_qspi/include/sdkconfig.h

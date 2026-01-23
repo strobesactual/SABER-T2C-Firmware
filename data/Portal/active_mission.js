@@ -123,6 +123,21 @@ async function applyMissionPrefill(mission) {
     if (Object.prototype.hasOwnProperty.call(mission, "crossing_enabled")) {
       cfg.crossing_enabled = !!mission.crossing_enabled;
     }
+    if (Object.prototype.hasOwnProperty.call(mission, "callsign")) {
+      cfg.callsign = String(mission.callsign || "");
+    }
+    if (Object.prototype.hasOwnProperty.call(mission, "balloonType")) {
+      cfg.balloonType = String(mission.balloonType || "");
+    }
+    if (Object.prototype.hasOwnProperty.call(mission, "time_kill_min")) {
+      cfg.time_kill_min = Number(mission.time_kill_min) || 0;
+    }
+    if (Object.prototype.hasOwnProperty.call(mission, "autoErase")) {
+      cfg.autoErase = !!mission.autoErase;
+    }
+    if (Object.prototype.hasOwnProperty.call(mission, "satcom_id")) {
+      cfg.satcom_id = String(mission.satcom_id || "");
+    }
     await apiSaveConfig(cfg);
     if (mission.geofence) {
       await apiSaveGeofence(mission.geofence);
@@ -1157,33 +1172,39 @@ function onSaveClick() {
   const timeKillMin = Math.round(ttTotalSec / 60);
   const triggerCount = calculateTriggerCount(ttTotalSec);
   const satcomId = (lastStatus?.globalstarId || "").toString();
-  const missionRecord = {
-    id: missionId,
-    name: missionId,
-    description: `Timer(min): ${timeKillMin} | Exclusion: ${keepOutPolygons.length} | Contained: ${remainInPolygon.length ? 1 : 0} | Lines: ${collectLines(4).length}`,
-    timed_enabled: !!document.getElementById("timedEnabled")?.checked,
-    contained_enabled: !!document.getElementById("containedEnabled")?.checked,
-    exclusion_enabled: !!document.getElementById("exclusionEnabled")?.checked,
-    crossing_enabled: !!document.getElementById("crossingEnabled")?.checked,
-    geofence: currentGeofenceDoc,
-  };
+  (async () => {
+    const cfg = await apiGetConfig().catch(() => ({}));
+    cfg.missionId = missionId;
+    cfg.satcom_id = satcomId;
+    cfg.time_kill_min = timeKillMin;
+    cfg.triggerCount = triggerCount;
+    cfg.timed_enabled = !!document.getElementById("timedEnabled")?.checked;
+    cfg.contained_enabled = !!document.getElementById("containedEnabled")?.checked;
+    cfg.exclusion_enabled = !!document.getElementById("exclusionEnabled")?.checked;
+    cfg.crossing_enabled = !!document.getElementById("crossingEnabled")?.checked;
 
-  Promise.all([
-    apiSaveGeofence(currentGeofenceDoc),
-    (async () => {
-      const cfg = await apiGetConfig().catch(() => ({}));
-      cfg.missionId = missionId;
-      cfg.satcom_id = satcomId;
-      cfg.time_kill_min = timeKillMin;
-      cfg.triggerCount = triggerCount;
-      cfg.timed_enabled = !!document.getElementById("timedEnabled")?.checked;
-      cfg.contained_enabled = !!document.getElementById("containedEnabled")?.checked;
-      cfg.exclusion_enabled = !!document.getElementById("exclusionEnabled")?.checked;
-      cfg.crossing_enabled = !!document.getElementById("crossingEnabled")?.checked;
-      return apiSaveConfig(cfg);
-    })(),
-    apiSaveMission(missionRecord),
-  ])
+    const missionRecord = {
+      id: missionId,
+      name: missionId,
+      description: `Timer(min): ${timeKillMin} | Exclusion: ${keepOutPolygons.length} | Contained: ${remainInPolygon.length ? 1 : 0} | Lines: ${collectLines(4).length}`,
+      timed_enabled: !!document.getElementById("timedEnabled")?.checked,
+      contained_enabled: !!document.getElementById("containedEnabled")?.checked,
+      exclusion_enabled: !!document.getElementById("exclusionEnabled")?.checked,
+      crossing_enabled: !!document.getElementById("crossingEnabled")?.checked,
+      callsign: cfg.callsign || lastStatus?.callsign || "",
+      balloonType: cfg.balloonType || lastStatus?.balloonType || "",
+      time_kill_min: cfg.time_kill_min || 0,
+      autoErase: !!cfg.autoErase,
+      satcom_id: cfg.satcom_id || "",
+      geofence: currentGeofenceDoc,
+    };
+
+    return Promise.all([
+      apiSaveGeofence(currentGeofenceDoc),
+      apiSaveConfig(cfg),
+      apiSaveMission(missionRecord),
+    ]);
+  })()
     .then(() => {
       updateCounters();
       showSaveFlag("Changes Saved");

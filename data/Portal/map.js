@@ -8,10 +8,10 @@
  */
 
 const MAP_IMAGE_URLS = [
-  "/assets/CONUS_map.png",
-  "./assets/CONUS_map.png",
-  "../assets/CONUS_map.png",
-  "/CONUS_map.png",
+  "/assets/CONUS_map.jpg",
+  "./assets/CONUS_map.jpg",
+  "../assets/CONUS_map.jpg",
+  "/CONUS_map.jpg",
 ];
 const GEOFENCE_URLS = ["/api/geofence", "/geofence.json", "../geofence.json", "./geofence.json"];
 

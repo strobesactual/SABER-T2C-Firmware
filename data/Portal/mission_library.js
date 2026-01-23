@@ -92,6 +92,11 @@ Promise.all([fetchMissions(), fetchConfig(), fetchGeofence()]).then(async ([miss
       contained_enabled: !!cfg?.contained_enabled,
       exclusion_enabled: !!cfg?.exclusion_enabled,
       crossing_enabled: !!cfg?.crossing_enabled,
+      callsign: cfg?.callsign || "",
+      balloonType: cfg?.balloonType || "",
+      time_kill_min: Number(cfg?.time_kill_min) || 0,
+      autoErase: !!cfg?.autoErase,
+      satcom_id: cfg?.satcom_id || "",
     };
     if (geofence) seedMission.geofence = geofence;
     try {

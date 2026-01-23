@@ -128,6 +128,13 @@ body{
 
 .btn-green:hover{background:#15803d}
 
+.btn-red{
+  background:#dc2626;
+  color:#fff;
+}
+
+.btn-red:hover{background:#b91c1c}
+
 /* Layout */
 .container{
   max-width:1060px;

@@ -13,7 +13,7 @@
 #include "satcom/SatCom.h"
 
 static const char* AP_SSID = "SABER-T2C";
-static const char* AP_PASS = "balloon";
+static const char* AP_PASS = "kyberdyne";
 static const char* GEOFENCE_PATH = "/geofence.json";
 static const char* GEOFENCE_DB_PATH = "/geofence_db.json";
 static const char* MISSION_LIBRARY_PATH = "/mission_library.json";
@@ -321,12 +321,12 @@ void begin() {
 
   // GET missions list
   server.on("/api/missions", HTTP_GET, [](AsyncWebServerRequest *request) {
-    StaticJsonDocument<8192> doc;
+    DynamicJsonDocument doc(16384);
     if (!loadJsonFile(MISSION_LIBRARY_PATH, doc)) {
       fillMissionsDefaults(doc);
     }
     JsonArray arr = doc["missions"].as<JsonArray>();
-    StaticJsonDocument<8192> outDoc;
+    DynamicJsonDocument outDoc(16384);
     JsonArray outArr = outDoc.to<JsonArray>();
     for (JsonObject m : arr) {
       JsonObject o = outArr.createNestedObject();
@@ -337,6 +337,11 @@ void begin() {
       o["contained_enabled"] = m["contained_enabled"] | false;
       o["exclusion_enabled"] = m["exclusion_enabled"] | false;
       o["crossing_enabled"] = m["crossing_enabled"] | false;
+      o["callsign"] = m["callsign"] | "";
+      o["balloonType"] = m["balloonType"] | "";
+      o["time_kill_min"] = m["time_kill_min"] | 0;
+      o["autoErase"] = m["autoErase"] | false;
+      o["satcom_id"] = m["satcom_id"] | "";
       if (m.containsKey("geofence")) {
         o["geofence"] = m["geofence"];
       }
@@ -360,7 +365,7 @@ void begin() {
 
       if (index + len != total) return;
 
-      StaticJsonDocument<512> incoming;
+      DynamicJsonDocument incoming(8192);
       DeserializationError err = deserializeJson(incoming, body);
       if (err) {
         request->send(400, "application/json", "{\"ok\":false,\"error\":\"invalid_json\"}");
@@ -374,17 +379,27 @@ void begin() {
       const bool hasContained = incoming.containsKey("contained_enabled");
       const bool hasExclusion = incoming.containsKey("exclusion_enabled");
       const bool hasCrossing = incoming.containsKey("crossing_enabled");
+      const bool hasCallsign = incoming.containsKey("callsign");
+      const bool hasBalloon = incoming.containsKey("balloonType");
+      const bool hasTimeKill = incoming.containsKey("time_kill_min");
+      const bool hasAutoErase = incoming.containsKey("autoErase");
+      const bool hasSatcom = incoming.containsKey("satcom_id");
       const bool timedEnabled = incoming["timed_enabled"] | false;
       const bool containedEnabled = incoming["contained_enabled"] | false;
       const bool exclusionEnabled = incoming["exclusion_enabled"] | false;
       const bool crossingEnabled = incoming["crossing_enabled"] | false;
       const bool hasGeofence = incoming.containsKey("geofence");
+      const char *callsign = incoming["callsign"] | "";
+      const char *balloonType = incoming["balloonType"] | "";
+      const uint32_t timeKillMin = incoming["time_kill_min"] | 0;
+      const bool autoErase = incoming["autoErase"] | false;
+      const char *satcomId = incoming["satcom_id"] | "";
       if (strlen(id) == 0) {
         request->send(400, "application/json", "{\"ok\":false,\"error\":\"missing_id\"}");
         return;
       }
 
-      StaticJsonDocument<8192> doc;
+      DynamicJsonDocument doc(16384);
       if (!loadJsonFile(MISSION_LIBRARY_PATH, doc)) {
         fillMissionsDefaults(doc);
       }
@@ -398,6 +413,11 @@ void begin() {
           if (hasContained) m["contained_enabled"] = containedEnabled;
           if (hasExclusion) m["exclusion_enabled"] = exclusionEnabled;
           if (hasCrossing) m["crossing_enabled"] = crossingEnabled;
+          if (hasCallsign) m["callsign"] = callsign;
+          if (hasBalloon) m["balloonType"] = balloonType;
+          if (hasTimeKill) m["time_kill_min"] = timeKillMin;
+          if (hasAutoErase) m["autoErase"] = autoErase;
+          if (hasSatcom) m["satcom_id"] = satcomId;
           if (hasGeofence) m["geofence"] = incoming["geofence"];
           found = true;
           break;
@@ -412,6 +432,11 @@ void begin() {
         m["contained_enabled"] = containedEnabled;
         m["exclusion_enabled"] = exclusionEnabled;
         m["crossing_enabled"] = crossingEnabled;
+        if (hasCallsign) m["callsign"] = callsign;
+        if (hasBalloon) m["balloonType"] = balloonType;
+        if (hasTimeKill) m["time_kill_min"] = timeKillMin;
+        if (hasAutoErase) m["autoErase"] = autoErase;
+        if (hasSatcom) m["satcom_id"] = satcomId;
         if (hasGeofence) m["geofence"] = incoming["geofence"];
       }
 
