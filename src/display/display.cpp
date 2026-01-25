@@ -141,6 +141,11 @@ void display_show_status()
     u8g2.sendBuffer();
 }
 
+void display_set_power(bool on)
+{
+    u8g2.setPowerSave(on ? 0 : 1);
+}
+
 // ---- setters ----
 void display_set_callsign(const char *cs) {
     if (!cs) cs = "";

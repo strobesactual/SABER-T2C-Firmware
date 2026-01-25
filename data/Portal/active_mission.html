@@ -15,14 +15,14 @@
     </div>
 
     <nav class="nav">
-      <a class="navlink" href="./configuration.html">Configuration</a>
       <a class="navlink" href="./mission_library.html">Mission Library</a>
       <a class="navlink active" href="./active_mission.html">Active Mission</a>
-      <a class="navlink" href="./map.html">Map</a>
+      <a class="navlink" href="./map.html">Mission Status</a>
       <a class="navlink" href="./testing.html">Testing</a>
     </nav>
 
     <div class="topbar-actions">
+      <span id="readyFlag" class="ready-flag" aria-live="polite"></span>
       <span id="saveFlag" class="save-flag" aria-live="polite"></span>
       <button id="saveActiveMission" class="btn btn-primary" type="button">Save Mission</button>
     </div>
@@ -31,37 +31,92 @@
   <main class="container">
     <div class="mission-grid">
 
-      <section class="card mission-box" id="activeMissionBox">
-        <div class="box-header">
-          <h2>Active Mission</h2>
+      <section class="card">
+        <div class="card-left">
+          <div class="card-title">
+            <img class="section-icon" src="./assets/beacon_icon.png" alt="Beacon" />
+            <h2>Configuration</h2>
+          </div>
+          <p>Add the callsign for this ballon, which will be displayed on the tracking page.</p>
+          <p>Select the balloon type being flown.</p>
+          <p>Confirm status is "Preflight".</p>
         </div>
 
-        <div class="mission-id-row">
-          <div class="field mission-id-field">
+        <div class="card-right">
+          <div class="field">
             <label for="missionId">Mission ID</label>
             <input id="missionId" class="box-medium box-editable" type="text" placeholder="None" />
           </div>
-          <div class="field mission-id-field">
-            <label for="amMissionCallsign">Callsign</label>
-            <input id="amMissionCallsign" class="box-medium box-display" type="text" placeholder="--" readonly />
-          </div>
-          <div class="field mission-id-field">
-            <label for="amSatcomId">SATCOM ID</label>
-            <input id="amSatcomId" class="box-medium box-display" type="text" placeholder="--" readonly />
-          </div>
-        </div>
 
-        <div class="mission-note-row">
-          <input id="timedPill" class="box-narrow box-display box-center" type="text" value="0" readonly />
-          <span class="mission-note">Termination triggers</span>
-        </div>
+          <div class="field">
+            <label for="callsign">Balloon Callsign</label>
+            <div class="callsign-row">
+              <input id="callsign"
+                class="box-medium box-editable"
+                type="text"
+                placeholder="SR123"
+                maxlength="6" />
+              <span class="callsign-limit">Limit 6 characters</span>
+            </div>
+          </div>
 
-        <div class="toggle mission-toggle">
-          <label class="switch">
-            <input id="satcomMessagesMission" type="checkbox" />
-            <span class="slider"></span>
-          </label>
-          <span>I have verified SATCOM messages have been received</span>
+          <div class="field">
+            <label for="balloonType">Balloon Type</label>
+            <select id="balloonType" class="box-medium box-editable">
+              <option value="SABER-70-100">SABER 70-100</option>
+              <option value="SABER-60-100">SABER 60-100</option>
+              <option value="SABER-50-100">SABER 50-100</option>
+
+              <option value="SABER-70-050">SABER 70-050</option>
+              <option value="SABER-60-050">SABER 60-050</option>
+              <option value="SABER-50-050">SABER 50-050</option>
+
+              <option value="SABER-70-025">SABER 70-025</option>
+              <option value="SABER-60-025">SABER 60-025</option>
+              <option value="SABER-50-025">SABER 50-025</option>
+
+              <option value="SABER-100-012">SABER 100-012</option>
+              <option value="SABER-70-012">SABER 70-012</option>
+              <option value="SABER-60-012">SABER 60-012</option>
+              <option value="SABER-50-012">SABER 50-012</option>
+
+              <option value="SABER-70-006">SABER 70-006</option>
+              <option value="SABER-60-006">SABER 60-006</option>
+              <option value="SABER-50-006">SABER 50-006</option>
+
+              <option value="SABER-30-006">SABER 30-006</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="note">Note</label>
+            <input id="note" class="box-long box-editable" type="text" placeholder="Free entry…" />
+          </div>
+
+          <div class="field symbol-inline">
+            <label>TAK Symbol</label>
+            <img
+              class="nato-symbol-inline"
+              src="./assets/NATO_Friendly_Air.png"
+              alt="NATO Friendly Air"
+            />
+          </div>
+
+          <div class="toggle">
+            <label class="switch">
+              <input id="autoErase" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+            <span>Auto-erase after termination</span>
+          </div>
+
+          <div class="toggle">
+            <label class="switch">
+              <input id="satcomMessages" type="checkbox" />
+              <span class="slider"></span>
+            </label>
+            <span>I have verified SATCOM messages have been received</span>
+          </div>
         </div>
       </section>
 
@@ -239,6 +294,7 @@
             <input id="suaSearch" class="box-medium box-editable" type="text" placeholder="Search by name or ID" />
           </div>
 
+          <div id="suaStatus" class="sua-count muted"></div>
           <div id="suaCount" class="sua-count muted"></div>
 
           <div class="sua-list-row">

@@ -35,6 +35,16 @@ async function fetchGeofence() {
   }
 }
 
+async function fetchStatus() {
+  try {
+    const r = await fetch("/api/status", { cache: "no-store" });
+    if (!r.ok) throw new Error("no api");
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
 async function saveMission(mission) {
   const r = await fetch("/api/missions", {
     method: "POST",
@@ -42,6 +52,23 @@ async function saveMission(mission) {
     body: JSON.stringify(mission),
   });
   if (!r.ok) throw new Error("save failed");
+}
+
+function setReadyFlag(isReady) {
+  const el = document.getElementById("readyFlag");
+  if (!el) return;
+  if (isReady) {
+    el.classList.remove("is-visible");
+    return;
+  }
+  el.textContent = "Not ready for launch";
+  el.classList.add("is-visible");
+}
+
+function updateReadyFlag(status, cfg) {
+  const hasGps = !!status?.gpsFix;
+  const hasTermination = !!(cfg && (cfg.timed_enabled || cfg.contained_enabled || cfg.exclusion_enabled || cfg.crossing_enabled));
+  setReadyFlag(hasGps && hasTermination);
 }
 
 function render(missions, activeId) {
@@ -58,6 +85,11 @@ function render(missions, activeId) {
       <div style="flex:1;">
         <div style="font-weight:700;">${escapeHtml(m.name)}</div>
         <div class="muted" style="font-size:13px;">${escapeHtml(m.description || "")}</div>
+        <div class="muted" style="font-size:13px; margin-top:4px;">
+          ID: ${escapeHtml(m.id || "--")} &nbsp;|&nbsp;
+          Callsign: ${escapeHtml(m.callsign || "--")} &nbsp;|&nbsp;
+          Balloon: ${escapeHtml(m.balloonType || "--")}
+        </div>
       </div>
     </div>
   `).join("");
@@ -66,8 +98,8 @@ function render(missions, activeId) {
 
   wrap.querySelectorAll("button[data-load]").forEach(btn => {
     btn.addEventListener("click", () => {
-      const id = Number(btn.getAttribute("data-load"));
-      const mission = missions.find(x => x.id === id);
+      const id = btn.getAttribute("data-load");
+      const mission = missions.find(x => String(x.id) === String(id));
       localStorage.setItem("saber_active_mission_prefill", JSON.stringify(mission));
       window.location.href = "./active_mission.html";
     });
@@ -80,7 +112,7 @@ function escapeHtml(s) {
   }[c]));
 }
 
-Promise.all([fetchMissions(), fetchConfig(), fetchGeofence()]).then(async ([missions, cfg, geofence]) => {
+Promise.all([fetchMissions(), fetchConfig(), fetchGeofence(), fetchStatus()]).then(async ([missions, cfg, geofence, status]) => {
   const activeId = cfg?.missionId || "";
   if (!missions.length) {
     const seedId = activeId || "ACTIVE";
@@ -97,6 +129,7 @@ Promise.all([fetchMissions(), fetchConfig(), fetchGeofence()]).then(async ([miss
       time_kill_min: Number(cfg?.time_kill_min) || 0,
       autoErase: !!cfg?.autoErase,
       satcom_id: cfg?.satcom_id || "",
+      satcom_verified: !!cfg?.satcom_verified,
     };
     if (geofence) seedMission.geofence = geofence;
     try {
@@ -107,4 +140,14 @@ Promise.all([fetchMissions(), fetchConfig(), fetchGeofence()]).then(async ([miss
     }
   }
   render(missions, activeId || (missions[0]?.id ?? ""));
+  updateReadyFlag(status, cfg);
 });
+
+setInterval(async () => {
+  try {
+    const [status, cfg] = await Promise.all([fetchStatus(), fetchConfig()]);
+    updateReadyFlag(status, cfg);
+  } catch {
+    updateReadyFlag(null, null);
+  }
+}, 2000);

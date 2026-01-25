@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Map</title>
+  <title>Mission Status</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 
@@ -14,22 +14,144 @@
     </div>
 
     <nav class="nav">
-      <a class="navlink" href="./configuration.html">Configuration</a>
       <a class="navlink" href="./mission_library.html">Mission Library</a>
       <a class="navlink" href="./active_mission.html">Active Mission</a>
-      <a class="navlink active" href="./map.html">Map</a>
+      <a class="navlink active" href="./map.html">Mission Status</a>
       <a class="navlink" href="./testing.html">Testing</a>
     </nav>
+
+    <div class="topbar-actions">
+      <span id="readyFlag" class="ready-flag" aria-live="polite"></span>
+    </div>
   </header>
 
   <main class="container">
     <div class="mission-grid">
+      <section class="card gps-card mission-card">
+        <div class="gps-card-header">
+          <img class="gps-icon" src="./assets/mission_icon.png" alt="Mission" />
+          <div class="gps-card-title">
+            <h2>Mission</h2>
+            <p>Live mission status</p>
+          </div>
+        </div>
+
+        <div class="card-right">
+          <div class="mission-inline-row">
+            <div class="inline-field">
+              <label>Status</label>
+              <div id="missionStatus" class="box-short box-display box-center">HOLD</div>
+            </div>
+
+            <div class="inline-field">
+              <label>Battery</label>
+              <div id="missionBattery" class="box-short box-display box-center">--</div>
+            </div>
+
+            <div class="inline-field">
+              <label>LoRa</label>
+              <div id="missionLora" class="box-short box-display box-center">N/A</div>
+            </div>
+          </div>
+
+          <div class="mission-inline-row">
+            <div class="inline-field">
+              <label>Launch Lat</label>
+              <div id="launchLat" class="box-short box-display box-center">--</div>
+            </div>
+            <div class="inline-field">
+              <label>Launch Lon</label>
+              <div id="launchLon" class="box-short box-display box-center">--</div>
+            </div>
+            <div class="inline-field">
+              <label>Launch Alt (m)</label>
+              <div id="launchAlt" class="box-short box-display box-center">--</div>
+            </div>
+          </div>
+
+          <div class="field termination-block">
+            <div class="mission-section-title">Termination</div>
+            <div class="termination-row">
+              <div id="missionGeofenceCount" class="termination-box box-narrow box-display">00</div>
+              <span>Geofence Restrictions</span>
+            </div>
+            <div class="termination-row">
+              <div id="missionTerminationSeconds" class="termination-box box-narrow box-display">0000</div>
+              <span>Minutes until termination</span>
+            </div>
+            <div class="termination-row">
+              <div id="missionFlightTimer" class="termination-box box-narrow box-display">0000</div>
+              <span>Flight timer (minutes)</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div class="map-stack">
         <div class="map-frame">
           <canvas class="map-canvas" id="mapCanvas" aria-label="CONUS map with termination areas"></canvas>
         </div>
         <p class="map-note">Active termination areas are displayed above</p>
       </div>
+
+      <section class="card gps-card">
+        <div class="gps-card-header">
+          <img class="gps-icon" src="./assets/gps_icon.png" alt="GPS" />
+          <div class="gps-card-title">
+            <h2>Satellite Data</h2>
+            <p>Live GPS + SATCOM telemetry from the avionics system.</p>
+            <p>Confirm the data is accurate before flight.</p>
+          </div>
+        </div>
+
+        <div class="card-right">
+          <div class="field tt-row">
+            <div>
+              <label for="lat">Latitude</label>
+              <input id="lat" class="box-short box-display" type="text" placeholder="30.350000" readonly />
+            </div>
+            <div>
+              <label for="lon">Longitude</label>
+              <input id="lon" class="box-short box-display" type="text" placeholder="-97.800000" readonly />
+            </div>
+            <div>
+              <label for="alt_m">Altitude (m)</label>
+              <input id="alt_m" class="box-short box-display" type="text" placeholder="10600" readonly />
+            </div>
+            <div>
+              <label for="alt_ft">Altitude (ft)</label>
+              <input id="alt_ft" class="box-short box-display" type="text" placeholder="34777" readonly />
+            </div>
+          </div>
+
+          <div class="field tt-row">
+            <div>
+              <label for="gpsFixText">GPS Fix</label>
+              <input id="gpsFixText" class="box-short box-display" type="text" placeholder="No Fix" readonly />
+            </div>
+            <div>
+              <label for="gpsSats">Satellites</label>
+              <input id="gpsSats" class="box-short box-display" type="text" placeholder="0" readonly />
+            </div>
+            <div>
+              <label for="gpsFlight">Mode</label>
+              <input id="gpsFlight" class="box-short box-display" type="text" placeholder="GROUND" readonly />
+            </div>
+          </div>
+
+          <div class="field tt-row">
+            <div>
+              <label for="satcomState">SATCOM State</label>
+              <input id="satcomState" class="box-short box-display" type="text" placeholder="INIT" readonly />
+            </div>
+            <div>
+              <label for="globalstarId">SATCOM ID</label>
+              <input id="globalstarId" class="globalstar-id box-short box-display" type="text" placeholder="XXXXXXXX" readonly />
+            </div>
+          </div>
+
+        </div>
+      </section>
     </div>
   </main>
   <script src="./map.js"></script>

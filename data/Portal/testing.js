@@ -10,7 +10,7 @@ function requireTestPassword() {
     sessionStorage.setItem(key, "ok");
     return true;
   }
-  window.location.href = "./configuration.html";
+  window.location.href = "./active_mission.html";
   return false;
 }
 
@@ -33,6 +33,12 @@ async function fetchStatus() {
 async function fetchTestFlags() {
   const r = await fetch("/api/test", { cache: "no-store" });
   if (!r.ok) throw new Error(`GET /api/test failed: ${r.status}`);
+  return await r.json();
+}
+
+async function fetchConfig() {
+  const r = await fetch("/api/config", { cache: "no-store" });
+  if (!r.ok) throw new Error(`GET /api/config failed: ${r.status}`);
   return await r.json();
 }
 
@@ -83,14 +89,43 @@ function updateOledMirror(status) {
   setText("oledGeo", geoText);
 }
 
+function formatTimer(seconds) {
+  const total = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  const hrs = Math.floor(total / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  const pad = (v) => String(v).padStart(2, "0");
+  return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+}
+
+function setReadyFlag(isReady) {
+  const el = $("readyFlag");
+  if (!el) return;
+  if (isReady) {
+    el.classList.remove("is-visible");
+    return;
+  }
+  el.textContent = "Not ready for launch";
+  el.classList.add("is-visible");
+}
+
+function updateReadyFlag(status, cfg) {
+  const hasGps = !!status?.gpsFix;
+  const hasTermination = !!(cfg && (cfg.timed_enabled || cfg.contained_enabled || cfg.exclusion_enabled || cfg.crossing_enabled));
+  setReadyFlag(hasGps && hasTermination);
+}
+
 async function refresh() {
   try {
-    const [status, testFlags] = await Promise.all([
+    const [status, testFlags, cfg] = await Promise.all([
       fetchStatus(),
       fetchTestFlags(),
+      fetchConfig(),
     ]);
     updateGpsMode(status);
     updateOledMirror(status);
+    setText("flightTimer", formatTimer(status?.flight_timer_sec));
+    updateReadyFlag(status, cfg);
     const geoToggle = $("geofenceViolation");
     if (geoToggle) {
       geoToggle.checked = !!testFlags?.force_geofence;
@@ -99,9 +134,14 @@ async function refresh() {
     if (flightToggle) {
       flightToggle.checked = !!testFlags?.flight_mode;
     }
+    const testToggle = $("testModeEnabled");
+    if (testToggle) {
+      testToggle.checked = !!testFlags?.test_mode;
+    }
   } catch (e) {
     setText("gpsFlight", "--");
     setText("oledCallsign", "--");
+    setReadyFlag(false);
   }
 }
 
@@ -109,18 +149,23 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!requireTestPassword()) return;
   const geoToggle = $("geofenceViolation");
   const flightToggle = $("flightModeEnabled");
+  const testToggle = $("testModeEnabled");
+  const resetToggle = $("resetFlightMode");
 
   async function pushTestFlags() {
     const forceGeofence = !!geoToggle?.checked;
     const flightMode = !!flightToggle?.checked;
+    const testMode = !!testToggle?.checked;
     try {
       await saveTestFlags({
         force_geofence: forceGeofence,
         flight_mode: flightMode,
+        test_mode: testMode,
       });
     } catch (e) {
       if (geoToggle) geoToggle.checked = !forceGeofence;
       if (flightToggle) flightToggle.checked = !flightMode;
+      if (testToggle) testToggle.checked = !testMode;
     }
   }
 
@@ -129,6 +174,26 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (flightToggle) {
     flightToggle.addEventListener("change", pushTestFlags);
+  }
+  if (testToggle) {
+    testToggle.addEventListener("change", pushTestFlags);
+  }
+  if (resetToggle) {
+    resetToggle.addEventListener("change", async () => {
+      if (!resetToggle.checked) return;
+      if (flightToggle) flightToggle.checked = false;
+      try {
+        await saveTestFlags({
+          force_geofence: !!geoToggle?.checked,
+          flight_mode: false,
+          test_mode: !!testToggle?.checked,
+        });
+      } catch (e) {
+        if (flightToggle) flightToggle.checked = true;
+      } finally {
+        resetToggle.checked = false;
+      }
+    });
   }
   refresh();
   setInterval(refresh, 2000);

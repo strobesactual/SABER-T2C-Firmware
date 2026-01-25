@@ -13,6 +13,11 @@ const MAP_IMAGE_URLS = [
   "../assets/CONUS_map.jpg",
   "/CONUS_map.jpg",
 ];
+const LAUNCH_ICON_URLS = [
+  "/assets/NATO_Friendly_Air.png",
+  "./assets/NATO_Friendly_Air.png",
+  "../assets/NATO_Friendly_Air.png",
+];
 const GEOFENCE_URLS = ["/api/geofence", "/geofence.json", "../geofence.json", "./geofence.json"];
 
 const TRANSFORM = {
@@ -34,6 +39,11 @@ const DRAW_VERTICES = true;
 const DRAW_LABELS = true;
 const LINE_WIDTH = 5;
 const VERTEX_RADIUS = 4;
+const LAUNCH_ICON_SIZE = 26;
+
+let mapImage = null;
+let launchIcon = null;
+let lastLaunchKey = "";
 
 function latLonToPx(lat, lon) {
   return {
@@ -211,6 +221,139 @@ async function loadGeofence() {
   throw lastErr || new Error("Fetch failed");
 }
 
+async function apiGetStatus() {
+  const r = await fetch("/api/status", { cache: "no-store" });
+  if (!r.ok) throw new Error(`GET /api/status failed: ${r.status}`);
+  return await r.json();
+}
+
+async function apiGetConfig() {
+  const r = await fetch("/api/config", { cache: "no-store" });
+  if (!r.ok) throw new Error(`GET /api/config failed: ${r.status}`);
+  return await r.json();
+}
+
+function setText(id, v) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    el.value = (v ?? "").toString();
+  } else {
+    el.textContent = v ?? "--";
+  }
+}
+
+function setReadyFlag(isReady) {
+  const el = document.getElementById("readyFlag");
+  if (!el) return;
+  if (isReady) {
+    el.classList.remove("is-visible");
+    return;
+  }
+  el.textContent = "Not ready for launch";
+  el.classList.add("is-visible");
+}
+
+function updateReadyFlag(status, cfg) {
+  const hasGps = !!status?.gpsFix;
+  const hasTermination = !!(cfg && (cfg.timed_enabled || cfg.contained_enabled || cfg.exclusion_enabled || cfg.crossing_enabled));
+  setReadyFlag(hasGps && hasTermination);
+}
+
+function toggleStateBox(id, ok) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle("box-state-good", !!ok);
+  el.classList.toggle("box-state-bad", !ok);
+}
+
+function extractSatcomId(status) {
+  if (!status) return "";
+  const direct = status.globalstarId || status.satcomId || status.satId || "";
+  if (direct) return String(direct).trim();
+
+  const satcom = (status.satcom || status.satcomState || "").toString();
+  const match = satcom.match(/(\\d{4,})/);
+  return match ? match[1] : "";
+}
+
+function setMissionFields(status) {
+  const hold = (status?.holdState || "").toString().trim().toUpperCase();
+  const statusText = hold === "HOLD" ? "HOLD" : "READY";
+  const triggerCount = Number(status?.triggerCount);
+  const timeKillMin = Number(status?.time_kill_min);
+  const timerTrigger = Number.isFinite(timeKillMin) && timeKillMin > 0 ? 1 : 0;
+  const geoCountText = Number.isFinite(triggerCount)
+    ? Math.max(triggerCount - timerTrigger, 0)
+    : 0;
+  const lora = (status?.lora || "").toString().trim();
+  const batt = Number(status?.battery);
+  const battText = Number.isFinite(batt) && batt >= 0 ? `${batt}%` : "--";
+  const minutes = Number(status?.time_kill_min);
+  const minutesText = Number.isFinite(minutes) ? String(minutes).padStart(4, "0") : "0000";
+  const flightSeconds = Number(status?.flight_timer_sec);
+  const flightMinutes = Number.isFinite(flightSeconds) ? Math.floor(flightSeconds / 60) : 0;
+  const flightText = String(flightMinutes).padStart(4, "0");
+
+  const statusEl = document.getElementById("missionStatus");
+  const loraEl = document.getElementById("missionLora");
+  const battEl = document.getElementById("missionBattery");
+  const geoEl = document.getElementById("missionGeofenceCount");
+  const secEl = document.getElementById("missionTerminationSeconds");
+  const flightEl = document.getElementById("missionFlightTimer");
+
+  if (statusEl) {
+    statusEl.textContent = statusText.toUpperCase();
+    toggleStateBox("missionStatus", hold !== "HOLD");
+  }
+  if (loraEl) {
+    const ready = lora && lora.toUpperCase() !== "INIT";
+    loraEl.textContent = ready ? "READY" : "N/A";
+    toggleStateBox("missionLora", ready);
+  }
+  if (battEl) battEl.textContent = battText;
+  if (geoEl) geoEl.textContent = String(geoCountText).padStart(2, "0");
+  if (secEl) secEl.textContent = minutesText;
+  if (flightEl) flightEl.textContent = flightText;
+
+  const launchSet = !!status?.launch_set;
+  const launchLat = Number(status?.launch_lat);
+  const launchLon = Number(status?.launch_lon);
+  const launchAlt = Number(status?.launch_alt_m);
+  setText("launchLat", launchSet && Number.isFinite(launchLat) ? launchLat.toFixed(6) : "--");
+  setText("launchLon", launchSet && Number.isFinite(launchLon) ? launchLon.toFixed(6) : "--");
+  setText("launchAlt", launchSet && Number.isFinite(launchAlt) ? launchAlt.toFixed(1) : "--");
+}
+
+function setGpsFields(status) {
+  const hasFix = !!status?.gpsFix;
+  const satCount = Number(status?.sats);
+  const satcomId = extractSatcomId(status);
+  const satcomState = satcomId ? "GOOD" : "INIT";
+  const flightRaw = (status?.flightState || "").toString().trim().toUpperCase();
+  const flightText = (flightRaw === "FLT" || flightRaw === "FLIGHT") ? "FLIGHT" : "GROUND";
+
+  setText("gpsFixText", hasFix ? "GOOD" : "NO FIX");
+  setText("gpsSats", Number.isFinite(satCount) ? satCount : "");
+  setText("satcomState", satcomState);
+  setText("globalstarId", satcomId);
+  setText("gpsFlight", flightText);
+
+  const satcomOk = satcomState === "GOOD";
+  toggleStateBox("gpsFixText", hasFix);
+  toggleStateBox("satcomState", satcomOk);
+
+  const lat = Number(status.lat);
+  const lon = Number(status.lon);
+  const altM = Number(status.alt_m);
+  const altFt = altM * 3.28084;
+
+  setText("lat", Number.isFinite(lat) ? lat.toFixed(6) : "");
+  setText("lon", Number.isFinite(lon) ? lon.toFixed(6) : "");
+  setText("alt_m", Number.isFinite(altM) ? altM.toFixed(1) : "");
+  setText("alt_ft", Number.isFinite(altFt) ? altFt.toFixed(1) : "");
+}
+
 function syncCanvasCssSize(canvas, img) {
   const parentWidth = canvas.parentElement?.clientWidth || img.width;
   if (!parentWidth) return;
@@ -219,11 +362,25 @@ function syncCanvasCssSize(canvas, img) {
   canvas.style.height = `${Math.round(parentWidth * ratio)}px`;
 }
 
-async function renderMap() {
+async function ensureMapAssets() {
+  if (!mapImage) mapImage = await loadImage(MAP_IMAGE_URLS);
+  if (!launchIcon) launchIcon = await loadImage(LAUNCH_ICON_URLS);
+}
+
+function drawLaunchIcon(ctx, pt) {
+  if (!launchIcon) return;
+  const { width, height } = ctx.canvas;
+  if (!inBounds(pt, width, height)) return;
+  const size = LAUNCH_ICON_SIZE;
+  ctx.drawImage(launchIcon, pt.x - size / 2, pt.y - size / 2, size, size);
+}
+
+async function renderMap(launchPoint) {
   const canvas = document.getElementById("mapCanvas");
   if (!canvas) return;
 
-  const img = await loadImage(MAP_IMAGE_URLS);
+  await ensureMapAssets();
+  const img = mapImage;
 
   canvas.width = img.width;
   canvas.height = img.height;
@@ -310,17 +467,57 @@ async function renderMap() {
       if (DRAW_LABELS && line.label) drawLabel(ctx, [p1, p2], line.label);
     }
   });
+
+  if (launchPoint) {
+    const pt = latLonToPx(launchPoint.lat, launchPoint.lon);
+    drawLaunchIcon(ctx, pt);
+  }
 }
 
 window.addEventListener("resize", () => {
   const canvas = document.getElementById("mapCanvas");
   if (!canvas) return;
-  loadImage(MAP_IMAGE_URLS)
-    .then((img) => syncCanvasCssSize(canvas, img))
-    .catch(() => {});
+  const sync = (img) => syncCanvasCssSize(canvas, img);
+  if (mapImage) {
+    sync(mapImage);
+  } else {
+    loadImage(MAP_IMAGE_URLS)
+      .then((img) => {
+        mapImage = img;
+        sync(img);
+      })
+      .catch(() => {});
+  }
 });
+
+async function refreshStatus() {
+  try {
+    const [status, cfg] = await Promise.all([apiGetStatus(), apiGetConfig()]);
+    setGpsFields(status);
+    setMissionFields(status);
+    updateReadyFlag(status, cfg);
+
+    if (status?.launch_set) {
+      const lat = Number(status?.launch_lat);
+      const lon = Number(status?.launch_lon);
+      if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        const key = `${lat.toFixed(6)}:${lon.toFixed(6)}`;
+        if (key !== lastLaunchKey) {
+          lastLaunchKey = key;
+          await renderMap({ lat, lon });
+          return;
+        }
+      }
+    }
+  } catch (err) {
+    setGpsFields({ gpsFix: false });
+    setReadyFlag(false);
+  }
+}
 
 renderMap().catch((err) => {
   // Fail silently in UI; console is enough for debug.
   console.error(err);
 });
+refreshStatus();
+setInterval(refreshStatus, 2000);

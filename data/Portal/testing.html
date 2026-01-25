@@ -15,47 +15,24 @@
     </div>
 
     <nav class="nav">
-      <a class="navlink" href="./configuration.html">Configuration</a>
       <a class="navlink" href="./mission_library.html">Mission Library</a>
       <a class="navlink" href="./active_mission.html">Active Mission</a>
-      <a class="navlink" href="./map.html">Map</a>
+      <a class="navlink" href="./map.html">Mission Status</a>
       <a class="navlink active" href="./testing.html">Testing</a>
     </nav>
+
+    <div class="topbar-actions">
+      <span id="readyFlag" class="ready-flag" aria-live="polite"></span>
+    </div>
   </header>
 
   <main class="container">
     <div class="mission-grid">
 
-      <section class="card mission-box" id="testingParamsBox">
-        <div class="card-left testing-card-left">
-          <div class="box-header">
-            <h2>Testing parameters</h2>
-          </div>
-          <div class="testing-toggle-group">
-            <div class="toggle">
-              <label class="switch">
-                <input id="flightModeEnabled" type="checkbox" />
-                <span class="slider"></span>
-              </label>
-              <span>Enable flight mode</span>
-            </div>
-
-            <div class="toggle">
-              <label class="switch">
-                <input id="geofenceViolation" type="checkbox" />
-                <span class="slider"></span>
-              </label>
-              <span>Force geofence violation</span>
-            </div>
-          </div>
-        </div>
-
-      </section>
-
       <section class="card mission-box" id="oledMirrorBox">
         <div class="card-left">
           <div class="box-header">
-            <h2>OLED mirror</h2>
+            <h2>OLED mirror &amp; Testing controls</h2>
           </div>
           <div class="oled-mirror">
             <div class="oled-row">
@@ -82,6 +59,50 @@
               <span class="oled-center" id="oledGeo">--</span>
               <span class="oled-right" id="oledBattery">--</span>
             </div>
+          </div>
+        </div>
+        <div class="card-right">
+          <div class="testing-toggle-grid">
+            <div class="testing-toggle-column">
+              <div class="toggle">
+                <label class="switch">
+                  <input id="testModeEnabled" type="checkbox" />
+                  <span class="slider"></span>
+                </label>
+                <span>Activate test mode</span>
+              </div>
+
+              <div class="toggle">
+                <label class="switch">
+                  <input id="flightModeEnabled" type="checkbox" />
+                  <span class="slider"></span>
+                </label>
+                <span>Enable flight mode</span>
+              </div>
+            </div>
+
+            <div class="testing-toggle-column">
+              <div class="toggle">
+                <label class="switch">
+                  <input id="geofenceViolation" type="checkbox" />
+                  <span class="slider"></span>
+                </label>
+                <span>Force geofence violation</span>
+              </div>
+
+              <div class="toggle">
+                <label class="switch">
+                  <input id="resetFlightMode" type="checkbox" />
+                  <span class="slider"></span>
+                </label>
+                <span>Reset flight mode to ground</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="testing-meta">
+            <span>Flight timer</span>
+            <span id="flightTimer">00:00:00</span>
           </div>
         </div>
       </section>

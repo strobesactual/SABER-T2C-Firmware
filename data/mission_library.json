@@ -12,6 +12,7 @@
       "time_kill_min": 10,
       "balloonType": "SABER-50-012",
       "autoErase": false,
+      "satcom_verified": false,
       "geofence": {
         "keep_out": [],
         "stay_in": [

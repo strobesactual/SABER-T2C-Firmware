@@ -19,6 +19,17 @@ function showSaveFlag(msg, isError = false) {
   }, 2500);
 }
 
+function setReadyFlag(isReady) {
+  const el = document.getElementById("readyFlag");
+  if (!el) return;
+  if (isReady) {
+    el.classList.remove("is-visible");
+    return;
+  }
+  el.textContent = "Not ready for launch";
+  el.classList.add("is-visible");
+}
+
 async function apiGetStatus() {
   const r = await fetch("/api/status", { cache: "no-store" });
   if (!r.ok) throw new Error(`GET /api/status failed: ${r.status}`);
@@ -70,7 +81,7 @@ async function apiSaveMission(obj) {
 function setText(id, v) {
   const el = document.getElementById(id);
   if (!el) return;
-  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
     el.value = (v ?? "").toString();
   } else {
     el.textContent = v ?? "--";
@@ -92,6 +103,23 @@ async function applyMissionPrefill(mission) {
   if (!mission) return;
   const input = document.getElementById("missionId");
   if (input && mission.id != null) input.value = String(mission.id);
+  if (Object.prototype.hasOwnProperty.call(mission, "callsign")) {
+    setText("callsign", mission.callsign || "");
+  }
+  if (Object.prototype.hasOwnProperty.call(mission, "balloonType")) {
+    setText("balloonType", mission.balloonType || "");
+  }
+  if (Object.prototype.hasOwnProperty.call(mission, "note")) {
+    setText("note", mission.note || "");
+  }
+  if (Object.prototype.hasOwnProperty.call(mission, "autoErase")) {
+    const autoErase = document.getElementById("autoErase");
+    if (autoErase) autoErase.checked = !!mission.autoErase;
+  }
+  if (Object.prototype.hasOwnProperty.call(mission, "satcom_verified")) {
+    const satcom = document.getElementById("satcomMessages");
+    if (satcom) satcom.checked = !!mission.satcom_verified;
+  }
 
   const toggleMap = [
     ["timedEnabled", "timed_enabled"],
@@ -138,6 +166,9 @@ async function applyMissionPrefill(mission) {
     if (Object.prototype.hasOwnProperty.call(mission, "satcom_id")) {
       cfg.satcom_id = String(mission.satcom_id || "");
     }
+    if (Object.prototype.hasOwnProperty.call(mission, "satcom_verified")) {
+      cfg.satcom_verified = !!mission.satcom_verified;
+    }
     await apiSaveConfig(cfg);
     if (mission.geofence) {
       await apiSaveGeofence(mission.geofence);
@@ -155,6 +186,7 @@ let remainInPolygon = [];
 let remainInLabel = "";
 let currentGeofenceDoc = { keep_out: [], stay_in: [], lines: [] };
 let lastStatus = null;
+let lastConfig = null;
 let suaCatalog = [];
 const suaById = new Map();
 const suaNameById = new Map();
@@ -231,9 +263,21 @@ function validatePoints(points, containerId) {
     const otherVal = other?.value?.trim() ?? "";
 
     const partial = (value && !otherVal) || (!value && otherVal);
-    markError(input, partial);
+    let rangeOk = true;
+    if (value) {
+      const num = Number(value);
+      if (!Number.isFinite(num)) {
+        rangeOk = false;
+      } else if (field === "lat" && (num < -90 || num > 90)) {
+        rangeOk = false;
+      } else if (field === "lon" && (num < -180 || num > 180)) {
+        rangeOk = false;
+      }
+    }
+
+    markError(input, partial || !rangeOk);
     if (other) markError(other, partial);
-    if (partial) ok = false;
+    if (partial || !rangeOk) ok = false;
   });
   return ok;
 }
@@ -552,25 +596,26 @@ async function loadStatus() {
   try {
     const status = await apiGetStatus();
     lastStatus = status;
-    setText("amMissionCallsign", status?.callsign || "--");
-    setText("amSatcomId", status?.globalstarId || status?.satcom_id || "--");
-
-    const flight = (status?.flightState || "").toString().toUpperCase();
-    const flightText = flight === "GND" ? "Ground" : flight === "FLT" ? "Flight" : flight || "--";
-    const hold = (status?.holdState || "").toString().toUpperCase();
-    const systemText = hold === "HOLD" ? "Hold" : "Ready";
+    updateReadyFlag();
   } catch (e) {
-    setText("amMissionCallsign", "--");
+    lastStatus = null;
+    updateReadyFlag();
   }
 }
 
 async function loadConfig() {
   try {
     const cfg = await apiGetConfig();
+    lastConfig = cfg;
     const input = document.getElementById("missionId");
     if (input) input.value = (cfg?.missionId || "").toString();
-    const satcom = document.getElementById("satcomMessagesMission");
-    if (satcom) satcom.checked = !!cfg?.satcom_id;
+    setText("callsign", cfg?.callsign || "");
+    setText("balloonType", cfg?.balloonType || "");
+    setText("note", cfg?.note || "");
+    const autoErase = document.getElementById("autoErase");
+    if (autoErase) autoErase.checked = !!cfg?.autoErase;
+    const satcom = document.getElementById("satcomMessages");
+    if (satcom) satcom.checked = !!cfg?.satcom_verified;
     if (typeof cfg?.time_kill_min === "number") {
       const totalEl = document.getElementById("tt_total");
       if (totalEl) totalEl.value = String(cfg.time_kill_min);
@@ -595,10 +640,21 @@ async function loadConfig() {
       crossingToggle.checked = !!cfg?.crossing_enabled;
       crossingToggle.dispatchEvent(new Event("change"));
     }
+    updateReadyFlag();
   } catch (e) {
+    lastConfig = null;
+    updateReadyFlag();
     const input = document.getElementById("missionId");
     if (input) input.value = "";
   }
+}
+
+function updateReadyFlag() {
+  const cfg = lastConfig;
+  const status = lastStatus;
+  const hasGps = !!status?.gpsFix;
+  const hasTermination = !!(cfg && (cfg.timed_enabled || cfg.contained_enabled || cfg.exclusion_enabled || cfg.crossing_enabled));
+  setReadyFlag(hasGps && hasTermination);
 }
 
 async function loadGeofence() {
@@ -655,6 +711,7 @@ async function fetchFirstOk(urls, type = "arrayBuffer") {
 
 async function loadSuaCatalog() {
   const tbody = document.getElementById("suaSelect");
+  const statusEl = document.getElementById("suaStatus");
   try {
     const idxBuf = await fetchFirstOk(["/sua_catalog.idx", "../sua_catalog.idx"]);
     suaBin = await fetchFirstOk(["/sua_catalog.bin", "../sua_catalog.bin"]);
@@ -704,8 +761,10 @@ async function loadSuaCatalog() {
 
     suaCatalog.sort((a, b) => a.name.localeCompare(b.name));
     renderSuaList();
+    if (statusEl) statusEl.textContent = "";
   } catch (e) {
     if (tbody) tbody.innerHTML = "<option>Failed to load areas.</option>";
+    if (statusEl) statusEl.textContent = "SUA database failed to load. Check LittleFS size and upload.";
   }
 }
 
@@ -1168,6 +1227,11 @@ function onSaveClick() {
     showSaveFlag("Mission ID required", true);
     return;
   }
+  const callsignInput = document.getElementById("callsign");
+  const balloonInput = document.getElementById("balloonType");
+  const noteInput = document.getElementById("note");
+  const autoEraseInput = document.getElementById("autoErase");
+  const satcomMessagesInput = document.getElementById("satcomMessages");
   const ttTotalSec = getTimedTotalSeconds();
   const timeKillMin = Math.round(ttTotalSec / 60);
   const triggerCount = calculateTriggerCount(ttTotalSec);
@@ -1182,6 +1246,11 @@ function onSaveClick() {
     cfg.contained_enabled = !!document.getElementById("containedEnabled")?.checked;
     cfg.exclusion_enabled = !!document.getElementById("exclusionEnabled")?.checked;
     cfg.crossing_enabled = !!document.getElementById("crossingEnabled")?.checked;
+    cfg.satcom_verified = !!satcomMessagesInput?.checked;
+    if (callsignInput) cfg.callsign = callsignInput.value.trim().slice(0, 6);
+    if (balloonInput) cfg.balloonType = balloonInput.value;
+    if (noteInput) cfg.note = noteInput.value.trim();
+    if (autoEraseInput) cfg.autoErase = !!autoEraseInput.checked;
 
     const missionRecord = {
       id: missionId,
@@ -1193,9 +1262,11 @@ function onSaveClick() {
       crossing_enabled: !!document.getElementById("crossingEnabled")?.checked,
       callsign: cfg.callsign || lastStatus?.callsign || "",
       balloonType: cfg.balloonType || lastStatus?.balloonType || "",
+      note: cfg.note || "",
       time_kill_min: cfg.time_kill_min || 0,
       autoErase: !!cfg.autoErase,
       satcom_id: cfg.satcom_id || "",
+      satcom_verified: !!cfg.satcom_verified,
       geofence: currentGeofenceDoc,
     };
 
