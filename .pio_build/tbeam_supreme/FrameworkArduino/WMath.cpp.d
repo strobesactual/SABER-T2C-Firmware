@@ -1,20 +1,20 @@
 .pio_build/tbeam_supreme/FrameworkArduino/WMath.cpp.o: \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/cores/esp32/WMath.cpp \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_system/include/esp_system.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_err.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_compiler.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_attr.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_bit_defs.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_idf_version.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_hw_support/include/esp_mac.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_hw_support/include/esp_chip_info.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_hw_support/include/esp_random.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal-log.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_timer/include/esp_timer.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/log/include/esp_log.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_rom/include/esp_rom_sys.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/soc/esp32s3/include/soc/reset_reasons.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_rom/include/esp32s3/rom/ets_sys.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/soc/esp32s3/include/soc/soc.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_assert.h \
- /Users/austin/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/log/include/esp_log_internal.h
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/cores/esp32/WMath.cpp \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_system/include/esp_system.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_err.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_compiler.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_attr.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_bit_defs.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_idf_version.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_hw_support/include/esp_mac.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_hw_support/include/esp_chip_info.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_hw_support/include/esp_random.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal-log.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_timer/include/esp_timer.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/log/include/esp_log.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_rom/include/esp_rom_sys.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/soc/esp32s3/include/soc/reset_reasons.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_rom/include/esp32s3/rom/ets_sys.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/soc/esp32s3/include/soc/soc.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_assert.h \
+ /Users/austinhulbert/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/log/include/esp_log_internal.h

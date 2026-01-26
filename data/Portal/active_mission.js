@@ -879,7 +879,7 @@ function parsePrebuiltCsv(text) {
 async function loadPrebuiltAreas() {
   const select = document.getElementById("prebuiltSelect");
   try {
-    const csv = await fetchFirstOk(["/prebuilt_areas.csv", "../prebuilt_areas.csv"], "text");
+    const csv = await fetchFirstOk(["/prebuilt_areas.csv"], "text");
     prebuiltAreas = parsePrebuiltCsv(csv);
     renderPrebuiltList();
   } catch (e) {
