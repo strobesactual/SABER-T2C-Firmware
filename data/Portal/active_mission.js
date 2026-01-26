@@ -19,6 +19,21 @@ function showSaveFlag(msg, isError = false) {
   }, 2500);
 }
 
+function showAutoSaveFlag(msg, state = "saved") {
+  const el = document.getElementById("autosaveFlag");
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove("is-saving", "is-error");
+  if (state === "saving") el.classList.add("is-saving");
+  if (state === "error") el.classList.add("is-error");
+  el.classList.add("is-visible");
+  clearTimeout(el._hideTimer);
+  const timeout = state === "saving" ? 4000 : 2000;
+  el._hideTimer = setTimeout(() => {
+    el.classList.remove("is-visible", "is-saving", "is-error");
+  }, timeout);
+}
+
 function setReadyFlag(isReady) {
   const el = document.getElementById("readyFlag");
   if (!el) return;
@@ -158,7 +173,9 @@ async function applyMissionPrefill(mission) {
       cfg.balloonType = String(mission.balloonType || "");
     }
     if (Object.prototype.hasOwnProperty.call(mission, "time_kill_min")) {
-      cfg.time_kill_min = Number(mission.time_kill_min) || 0;
+      const timeKillMin = Number(mission.time_kill_min) || 0;
+      cfg.time_kill_min = timeKillMin;
+      setTimedFieldsFromMinutes(timeKillMin);
     }
     if (Object.prototype.hasOwnProperty.call(mission, "autoErase")) {
       cfg.autoErase = !!mission.autoErase;
@@ -206,6 +223,13 @@ const keepOutFromPrebuilt = new Map();
 
 const MAX_KEEP_OUT = 6;
 const ARC_STEP_M = 1000;
+
+let autoSaveTimer = null;
+let autoSaveBusy = false;
+let autoSavePending = false;
+let autoSaveReady = false;
+let lastAutoSaveConfig = "";
+let lastAutoSaveGeofence = "";
 
 function renderPointList(containerId, points) {
   const container = document.getElementById(containerId);
@@ -503,6 +527,26 @@ function updateTimedTotal() {
   if (totalEl) totalEl.value = String(totalMinutes);
 }
 
+function setTimedFieldsFromMinutes(totalMinutes) {
+  const safeMinutes = Number.isFinite(totalMinutes) ? Math.max(0, totalMinutes) : 0;
+  const totalSeconds = Math.round(safeMinutes * 60);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const map = {
+    tt_days: days,
+    tt_hours: hours,
+    tt_minutes: minutes,
+    tt_seconds: seconds,
+  };
+  Object.entries(map).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = String(value);
+  });
+  updateTimedTotal();
+}
+
 function setTimedEnabled(enabled) {
   ["tt_days", "tt_hours", "tt_minutes", "tt_seconds"].forEach((id) => {
     const el = document.getElementById(id);
@@ -516,13 +560,127 @@ function setTimedEnabled(enabled) {
     el.classList.toggle("box-editable", enabled);
     el.classList.toggle("box-display", !enabled);
   });
-  if (!enabled) {
-    ["tt_days", "tt_hours", "tt_minutes", "tt_seconds"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.value = "0";
-    });
-  }
   updateTimedTotal();
+}
+
+function areLineRowsValid(count) {
+  for (let i = 1; i <= count; i++) {
+    const valueEl = document.getElementById(`line_value_${i}`);
+    const valueRaw = valueEl?.value?.trim();
+    if (isEmpty(valueRaw)) continue;
+    const value = Number(valueRaw);
+    if (!Number.isFinite(value)) return false;
+    if (value < -180 || value > 180) return false;
+  }
+  return true;
+}
+
+function buildGeofenceDoc() {
+  const keepOutRule = keepOutPolygons.map((entry, idx) => ({
+    id: `KeepOut-${idx + 1}`,
+    label: entry.label || "",
+    polygon: entry.polygon,
+  }));
+
+  const stayInRule = remainInPolygon.length
+    ? [{ id: "StayIn", label: remainInLabel || "", polygon: remainInPolygon }]
+    : [];
+
+  currentGeofenceDoc = {
+    keep_out: keepOutRule,
+    stay_in: stayInRule,
+    lines: collectLines(4),
+  };
+
+  return currentGeofenceDoc;
+}
+
+function buildConfigPayload() {
+  const missionIdInput = document.getElementById("missionId");
+  const callsignInput = document.getElementById("callsign");
+  const balloonInput = document.getElementById("balloonType");
+  const noteInput = document.getElementById("note");
+  const autoEraseInput = document.getElementById("autoErase");
+  const satcomMessagesInput = document.getElementById("satcomMessages");
+  const ttTotalSec = getTimedTotalSeconds();
+  const timeKillMin = Math.round(ttTotalSec / 60);
+  const triggerCount = calculateTriggerCount(ttTotalSec);
+  const satcomId = (lastStatus?.globalstarId || lastConfig?.satcom_id || "").toString();
+
+  const cfg = {
+    missionId: missionIdInput?.value?.trim() || "",
+    satcom_id: satcomId,
+    time_kill_min: timeKillMin,
+    triggerCount,
+    timed_enabled: !!document.getElementById("timedEnabled")?.checked,
+    contained_enabled: !!document.getElementById("containedEnabled")?.checked,
+    exclusion_enabled: !!document.getElementById("exclusionEnabled")?.checked,
+    crossing_enabled: !!document.getElementById("crossingEnabled")?.checked,
+    satcom_verified: !!satcomMessagesInput?.checked,
+  };
+
+  if (callsignInput) cfg.callsign = callsignInput.value.trim().slice(0, 6);
+  if (balloonInput) cfg.balloonType = balloonInput.value;
+  if (noteInput) cfg.note = noteInput.value.trim();
+  if (autoEraseInput) cfg.autoErase = !!autoEraseInput.checked;
+
+  return cfg;
+}
+
+function scheduleAutoSave() {
+  if (!autoSaveReady) return;
+  autoSavePending = true;
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => {
+    autoSavePending = false;
+    autoSaveActiveMission();
+  }, 600);
+}
+
+async function autoSaveActiveMission() {
+  if (!autoSaveReady) return;
+  if (autoSaveBusy) {
+    autoSavePending = true;
+    return;
+  }
+  autoSaveBusy = true;
+  try {
+    const cfg = buildConfigPayload();
+    const configJson = JSON.stringify(cfg);
+    const saveCfg = configJson !== lastAutoSaveConfig;
+
+    let geofenceDoc = null;
+    let geofenceJson = "";
+    if (areLineRowsValid(4)) {
+      geofenceDoc = buildGeofenceDoc();
+      geofenceJson = JSON.stringify(geofenceDoc);
+    }
+    const saveGeo = geofenceDoc && geofenceJson !== lastAutoSaveGeofence;
+
+    const saves = [];
+    if (saveCfg) {
+      lastAutoSaveConfig = configJson;
+      saves.push(apiSaveConfig(cfg));
+    }
+    if (saveGeo) {
+      lastAutoSaveGeofence = geofenceJson;
+      saves.push(apiSaveGeofence(geofenceDoc));
+    }
+    if (saves.length) {
+      showAutoSaveFlag("Saving...", "saving");
+      await Promise.all(saves);
+      showAutoSaveFlag("Autosaved", "saved");
+    }
+  } catch (e) {
+    showAutoSaveFlag("Autosave failed", "error");
+    showSaveFlag("Autosave failed", true);
+  } finally {
+    autoSaveBusy = false;
+    if (autoSavePending) {
+      autoSavePending = false;
+      scheduleAutoSave();
+    }
+  }
 }
 
 function collectLines(count) {
@@ -616,9 +774,9 @@ async function loadConfig() {
     if (autoErase) autoErase.checked = !!cfg?.autoErase;
     const satcom = document.getElementById("satcomMessages");
     if (satcom) satcom.checked = !!cfg?.satcom_verified;
-    if (typeof cfg?.time_kill_min === "number") {
-      const totalEl = document.getElementById("tt_total");
-      if (totalEl) totalEl.value = String(cfg.time_kill_min);
+    const timeKillMin = Number(cfg?.time_kill_min);
+    if (Number.isFinite(timeKillMin)) {
+      setTimedFieldsFromMinutes(timeKillMin);
     }
     const timedToggle = document.getElementById("timedEnabled");
     if (timedToggle) {
@@ -959,6 +1117,7 @@ function applyRemainSelection(areaId, checked) {
   updateSelectedAreas();
   updateSuaActionButtons();
   setRemainButtonsState();
+  scheduleAutoSave();
 }
 
 function applyKeepSelection(areaId, checked) {
@@ -989,6 +1148,7 @@ function applyKeepSelection(areaId, checked) {
   updateCounters();
   updateSelectedAreas();
   updateSuaActionButtons();
+  scheduleAutoSave();
 }
 
 function applyPrebuiltRemain(areaId) {
@@ -1011,6 +1171,7 @@ function applyPrebuiltRemain(areaId) {
   updateSuaActionButtons();
   updatePrebuiltButtons();
   setRemainButtonsState();
+  scheduleAutoSave();
 }
 
 function applyPrebuiltKeep(areaId) {
@@ -1028,6 +1189,7 @@ function applyPrebuiltKeep(areaId) {
   renderSavedPolygons();
   updateCounters();
   updatePrebuiltButtons();
+  scheduleAutoSave();
 }
 
 function wireEvents() {
@@ -1035,6 +1197,21 @@ function wireEvents() {
   const createRemain = document.getElementById("createSetRemain");
   const createKeep = document.getElementById("createAddKeepOut");
   const labelInput = document.getElementById("createPolyLabel");
+  const missionIdInput = document.getElementById("missionId");
+  const callsignInput = document.getElementById("callsign");
+  const balloonInput = document.getElementById("balloonType");
+  const noteInput = document.getElementById("note");
+  const autoEraseInput = document.getElementById("autoErase");
+  const satcomMessagesInput = document.getElementById("satcomMessages");
+
+  [missionIdInput, callsignInput, noteInput].forEach((el) => {
+    if (!el) return;
+    el.addEventListener("input", scheduleAutoSave);
+    el.addEventListener("change", scheduleAutoSave);
+  });
+  if (balloonInput) balloonInput.addEventListener("change", scheduleAutoSave);
+  if (autoEraseInput) autoEraseInput.addEventListener("change", scheduleAutoSave);
+  if (satcomMessagesInput) satcomMessagesInput.addEventListener("change", scheduleAutoSave);
 
   if (createAdd) createAdd.addEventListener("click", () => {
     addPoint(createPolyDraft, "createPolyPoints");
@@ -1078,6 +1255,7 @@ function wireEvents() {
     renderSavedPolygons();
     updateCounters();
     setRemainButtonsState();
+    scheduleAutoSave();
   });
 
   if (createKeep) createKeep.addEventListener("click", () => {
@@ -1112,6 +1290,7 @@ function wireEvents() {
     if (labelInput) labelInput.value = "";
     renderSavedPolygons();
     updateCounters();
+    scheduleAutoSave();
   });
 
   bindPointInputs("createPolyPoints", createPolyDraft);
@@ -1122,6 +1301,7 @@ function wireEvents() {
     el.addEventListener("input", () => {
       updateTimedTotal();
       updateCounters();
+      scheduleAutoSave();
     });
   });
 
@@ -1130,6 +1310,7 @@ function wireEvents() {
     timedToggle.addEventListener("change", () => {
       setTimedEnabled(timedToggle.checked);
       updateCounters();
+      scheduleAutoSave();
     });
   }
 
@@ -1144,6 +1325,7 @@ function wireEvents() {
       if (createBtn) createBtn.disabled = !containedEnabled;
       updateSuaActionButtons();
       updatePrebuiltButtons();
+      scheduleAutoSave();
     };
     containedToggle.addEventListener("change", apply);
     apply();
@@ -1160,6 +1342,7 @@ function wireEvents() {
       if (createBtn) createBtn.disabled = !exclusionEnabled;
       updateSuaActionButtons();
       updatePrebuiltButtons();
+      scheduleAutoSave();
     };
     exclusionToggle.addEventListener("change", apply);
     apply();
@@ -1175,6 +1358,7 @@ function wireEvents() {
       card.querySelectorAll(".line-list input, .line-list select").forEach((el) => {
         el.disabled = !enabled;
       });
+      scheduleAutoSave();
     };
     crossingToggle.addEventListener("change", apply);
     apply();
@@ -1186,14 +1370,23 @@ function wireEvents() {
     [value, axis].forEach((el) => {
       if (!el) return;
       el.addEventListener("input", updateCounters);
-      el.addEventListener("change", updateCounters);
+      el.addEventListener("change", () => {
+        updateCounters();
+        scheduleAutoSave();
+      });
     });
     if (axis) {
-      axis.addEventListener("change", () => updateAxisLabel(axis));
+      axis.addEventListener("change", () => {
+        updateAxisLabel(axis);
+        scheduleAutoSave();
+      });
       updateAxisLabel(axis);
     }
     if (value) {
-      value.addEventListener("blur", () => formatAxisValue(value));
+      value.addEventListener("blur", () => {
+        formatAxisValue(value);
+        scheduleAutoSave();
+      });
     }
   }
 
@@ -1205,61 +1398,23 @@ function onSaveClick() {
     return;
   }
 
-  const keepOutRule = keepOutPolygons.map((entry, idx) => ({
-    id: `KeepOut-${idx + 1}`,
-    label: entry.label || "",
-    polygon: entry.polygon,
-  }));
+  const geofenceDoc = buildGeofenceDoc();
 
-  const stayInRule = remainInPolygon.length
-    ? [{ id: "StayIn", label: remainInLabel || "", polygon: remainInPolygon }]
-    : [];
-
-  currentGeofenceDoc = {
-    keep_out: keepOutRule,
-    stay_in: stayInRule,
-    lines: collectLines(4),
-  };
-
-  const missionIdInput = document.getElementById("missionId");
-  const missionId = missionIdInput?.value?.trim() || "";
+  const cfg = buildConfigPayload();
+  const missionId = cfg.missionId || "";
   if (!missionId) {
     showSaveFlag("Mission ID required", true);
     return;
   }
-  const callsignInput = document.getElementById("callsign");
-  const balloonInput = document.getElementById("balloonType");
-  const noteInput = document.getElementById("note");
-  const autoEraseInput = document.getElementById("autoErase");
-  const satcomMessagesInput = document.getElementById("satcomMessages");
-  const ttTotalSec = getTimedTotalSeconds();
-  const timeKillMin = Math.round(ttTotalSec / 60);
-  const triggerCount = calculateTriggerCount(ttTotalSec);
-  const satcomId = (lastStatus?.globalstarId || "").toString();
   (async () => {
-    const cfg = await apiGetConfig().catch(() => ({}));
-    cfg.missionId = missionId;
-    cfg.satcom_id = satcomId;
-    cfg.time_kill_min = timeKillMin;
-    cfg.triggerCount = triggerCount;
-    cfg.timed_enabled = !!document.getElementById("timedEnabled")?.checked;
-    cfg.contained_enabled = !!document.getElementById("containedEnabled")?.checked;
-    cfg.exclusion_enabled = !!document.getElementById("exclusionEnabled")?.checked;
-    cfg.crossing_enabled = !!document.getElementById("crossingEnabled")?.checked;
-    cfg.satcom_verified = !!satcomMessagesInput?.checked;
-    if (callsignInput) cfg.callsign = callsignInput.value.trim().slice(0, 6);
-    if (balloonInput) cfg.balloonType = balloonInput.value;
-    if (noteInput) cfg.note = noteInput.value.trim();
-    if (autoEraseInput) cfg.autoErase = !!autoEraseInput.checked;
-
     const missionRecord = {
       id: missionId,
       name: missionId,
-      description: `Timer(min): ${timeKillMin} | Exclusion: ${keepOutPolygons.length} | Contained: ${remainInPolygon.length ? 1 : 0} | Lines: ${collectLines(4).length}`,
-      timed_enabled: !!document.getElementById("timedEnabled")?.checked,
-      contained_enabled: !!document.getElementById("containedEnabled")?.checked,
-      exclusion_enabled: !!document.getElementById("exclusionEnabled")?.checked,
-      crossing_enabled: !!document.getElementById("crossingEnabled")?.checked,
+      description: `Timer(min): ${cfg.time_kill_min || 0} | Exclusion: ${keepOutPolygons.length} | Contained: ${remainInPolygon.length ? 1 : 0} | Lines: ${collectLines(4).length}`,
+      timed_enabled: !!cfg.timed_enabled,
+      contained_enabled: !!cfg.contained_enabled,
+      exclusion_enabled: !!cfg.exclusion_enabled,
+      crossing_enabled: !!cfg.crossing_enabled,
       callsign: cfg.callsign || lastStatus?.callsign || "",
       balloonType: cfg.balloonType || lastStatus?.balloonType || "",
       note: cfg.note || "",
@@ -1267,17 +1422,20 @@ function onSaveClick() {
       autoErase: !!cfg.autoErase,
       satcom_id: cfg.satcom_id || "",
       satcom_verified: !!cfg.satcom_verified,
-      geofence: currentGeofenceDoc,
+      geofence: geofenceDoc,
     };
 
     return Promise.all([
-      apiSaveGeofence(currentGeofenceDoc),
+      apiSaveGeofence(geofenceDoc),
       apiSaveConfig(cfg),
       apiSaveMission(missionRecord),
     ]);
   })()
     .then(() => {
       updateCounters();
+      lastAutoSaveConfig = JSON.stringify(cfg);
+      lastAutoSaveGeofence = JSON.stringify(geofenceDoc);
+      showAutoSaveFlag("Saved", "saved");
       showSaveFlag("Changes Saved");
     })
     .catch(() => showSaveFlag("Save failed", true));
@@ -1299,8 +1457,12 @@ document.addEventListener("DOMContentLoaded", () => {
   updateCounters();
   loadStatus();
   const missionPrefill = loadMissionPrefill();
-  loadConfig().then(() => applyMissionPrefill(missionPrefill));
-  loadGeofence();
+  Promise.all([
+    loadConfig().then(() => applyMissionPrefill(missionPrefill)),
+    loadGeofence(),
+  ]).finally(() => {
+    autoSaveReady = true;
+  });
   loadSuaCatalog();
   loadPrebuiltAreas();
 

@@ -56,6 +56,30 @@ body{
   opacity:1;
 }
 
+.autosave-flag{
+  font-size:12px;
+  font-weight:700;
+  color:#fff;
+  padding:6px 10px;
+  border-radius:999px;
+  background:#0ea5e9;
+  opacity:0;
+  display:inline-block;
+  transition:opacity .2s ease;
+}
+
+.autosave-flag.is-visible{
+  opacity:1;
+}
+
+.autosave-flag.is-saving{
+  background:#f59e0b;
+}
+
+.autosave-flag.is-error{
+  background:#dc2626;
+}
+
 .ready-flag{
   font-size:13px;
   font-weight:700;
