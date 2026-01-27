@@ -120,7 +120,7 @@ void begin() {
 
   // GET current config (or defaults if missing/corrupt)
   server.on("/api/config", HTTP_GET, [](AsyncWebServerRequest *request) {
-    StaticJsonDocument<512> doc;
+    StaticJsonDocument<1024> doc;
 
     if (!store.load(doc)) {
       fillDefaults(doc);
@@ -133,8 +133,8 @@ void begin() {
 
   // GET current status (callsign + GPS)
   server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *request) {
-    StaticJsonDocument<512> doc;
-    StaticJsonDocument<512> cfg;
+    StaticJsonDocument<1024> doc;
+    StaticJsonDocument<1024> cfg;
 
     if (!store.load(cfg)) {
       fillDefaults(cfg);
@@ -213,7 +213,7 @@ void begin() {
 
       if (index + len != total) return; // wait for full body
 
-      StaticJsonDocument<512> doc;
+      StaticJsonDocument<1024> doc;
       DeserializationError err = deserializeJson(doc, body);
 
       if (err) {
@@ -221,12 +221,12 @@ void begin() {
         return;
       }
 
-      StaticJsonDocument<512> existing;
+      StaticJsonDocument<1024> existing;
       if (!store.load(existing)) {
         fillDefaults(existing);
       }
 
-      StaticJsonDocument<512> merged;
+      StaticJsonDocument<1024> merged;
       merged.set(existing);
 
       if (doc.containsKey("callsign")) merged["callsign"] = doc["callsign"].as<String>();

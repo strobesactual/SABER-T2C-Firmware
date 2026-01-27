@@ -235,8 +235,16 @@ let autoSaveTimer = null;
 let autoSaveBusy = false;
 let autoSavePending = false;
 let autoSaveReady = false;
+let autoSaveInitTimer = null;
 let lastAutoSaveConfig = "";
 let lastAutoSaveGeofence = "";
+let isApplyingConfig = false;
+const touchedFields = new Set();
+
+function markTouched(id) {
+  if (isApplyingConfig) return;
+  if (id) touchedFields.add(id);
+}
 
 function renderPointList(containerId, points) {
   const container = document.getElementById(containerId);
@@ -610,7 +618,6 @@ function buildConfigPayload() {
   const autoEraseInput = document.getElementById("autoErase");
   const satcomMessagesInput = document.getElementById("satcomMessages");
   const launchConfirmedInput = document.getElementById("launchConfirmed");
-  const launchConfirmedInput = document.getElementById("launchConfirmed");
   const ttTotalSec = getTimedTotalSeconds();
   const timeKillMin = Math.round(ttTotalSec / 60);
   const triggerCount = calculateTriggerCount(ttTotalSec);
@@ -638,8 +645,8 @@ function buildConfigPayload() {
 }
 
 function scheduleAutoSave() {
-  if (!autoSaveReady) return;
   autoSavePending = true;
+  if (!autoSaveReady) return;
   if (autoSaveTimer) clearTimeout(autoSaveTimer);
   autoSaveTimer = setTimeout(() => {
     autoSavePending = false;
@@ -669,12 +676,14 @@ async function autoSaveActiveMission() {
 
     const saves = [];
     if (saveCfg) {
-      lastAutoSaveConfig = configJson;
-      saves.push(apiSaveConfig(cfg));
+      saves.push(apiSaveConfig(cfg).then(() => {
+        lastAutoSaveConfig = configJson;
+      }));
     }
     if (saveGeo) {
-      lastAutoSaveGeofence = geofenceJson;
-      saves.push(apiSaveGeofence(geofenceDoc));
+      saves.push(apiSaveGeofence(geofenceDoc).then(() => {
+        lastAutoSaveGeofence = geofenceJson;
+      }));
     }
     if (saves.length) {
       showAutoSaveFlag("Saving...", "saving");
@@ -775,43 +784,46 @@ async function loadConfig() {
   try {
     const cfg = await apiGetConfig();
     lastConfig = cfg;
+    isApplyingConfig = true;
     const input = document.getElementById("missionId");
-    if (input) input.value = (cfg?.missionId || "").toString();
-    setText("callsign", cfg?.callsign || "");
-    setText("balloonType", cfg?.balloonType || "");
-    setText("note", cfg?.note || "");
+    if (input && !touchedFields.has("missionId")) input.value = (cfg?.missionId || "").toString();
+    if (!touchedFields.has("callsign")) setText("callsign", cfg?.callsign || "");
+    if (!touchedFields.has("balloonType")) setText("balloonType", cfg?.balloonType || "");
+    if (!touchedFields.has("note")) setText("note", cfg?.note || "");
     const autoErase = document.getElementById("autoErase");
-    if (autoErase) autoErase.checked = !!cfg?.autoErase;
+    if (autoErase && !touchedFields.has("autoErase")) autoErase.checked = !!cfg?.autoErase;
     const satcom = document.getElementById("satcomMessages");
-    if (satcom) satcom.checked = !!cfg?.satcom_verified;
+    if (satcom && !touchedFields.has("satcomMessages")) satcom.checked = !!cfg?.satcom_verified;
     const launchConfirmed = document.getElementById("launchConfirmed");
-    if (launchConfirmed) launchConfirmed.checked = !!cfg?.launch_confirmed;
+    if (launchConfirmed && !touchedFields.has("launchConfirmed")) launchConfirmed.checked = !!cfg?.launch_confirmed;
     const timeKillMin = Number(cfg?.time_kill_min);
-    if (Number.isFinite(timeKillMin)) {
+    if (!touchedFields.has("tt_total") && Number.isFinite(timeKillMin)) {
       setTimedFieldsFromMinutes(timeKillMin);
     }
     const timedToggle = document.getElementById("timedEnabled");
     if (timedToggle) {
-      timedToggle.checked = !!cfg?.timed_enabled;
+      if (!touchedFields.has("timedEnabled")) timedToggle.checked = !!cfg?.timed_enabled;
       timedToggle.dispatchEvent(new Event("change"));
     }
     const containedToggle = document.getElementById("containedEnabled");
     if (containedToggle) {
-      containedToggle.checked = !!cfg?.contained_enabled;
+      if (!touchedFields.has("containedEnabled")) containedToggle.checked = !!cfg?.contained_enabled;
       containedToggle.dispatchEvent(new Event("change"));
     }
     const exclusionToggle = document.getElementById("exclusionEnabled");
     if (exclusionToggle) {
-      exclusionToggle.checked = !!cfg?.exclusion_enabled;
+      if (!touchedFields.has("exclusionEnabled")) exclusionToggle.checked = !!cfg?.exclusion_enabled;
       exclusionToggle.dispatchEvent(new Event("change"));
     }
     const crossingToggle = document.getElementById("crossingEnabled");
     if (crossingToggle) {
-      crossingToggle.checked = !!cfg?.crossing_enabled;
+      if (!touchedFields.has("crossingEnabled")) crossingToggle.checked = !!cfg?.crossing_enabled;
       crossingToggle.dispatchEvent(new Event("change"));
     }
+    isApplyingConfig = false;
     updateReadyFlag();
   } catch (e) {
+    isApplyingConfig = false;
     lastConfig = null;
     updateReadyFlag();
     const input = document.getElementById("missionId");
@@ -884,10 +896,10 @@ async function loadSuaCatalog() {
   const tbody = document.getElementById("suaSelect");
   const statusEl = document.getElementById("suaStatus");
   try {
-    const idxBuf = await fetchFirstOk(["/sua_catalog.idx", "../sua_catalog.idx"]);
-    suaBin = await fetchFirstOk(["/sua_catalog.bin", "../sua_catalog.bin"]);
+    const idxBuf = await fetchFirstOk(["/sua_catalog.idx", "./sua_catalog.idx", "../sua_catalog.idx"]);
+    suaBin = await fetchFirstOk(["/sua_catalog.bin", "./sua_catalog.bin", "../sua_catalog.bin"]);
     try {
-      const meta = await fetchFirstOk(["/sua_catalog_meta.json", "../sua_catalog_meta.json"], "json");
+      const meta = await fetchFirstOk(["/sua_catalog_meta.json", "./sua_catalog_meta.json", "../sua_catalog_meta.json"], "json");
       suaAsOf = meta?.as_of || "";
     } catch (e) {
       suaAsOf = "";
@@ -1050,7 +1062,7 @@ function parsePrebuiltCsv(text) {
 async function loadPrebuiltAreas() {
   const select = document.getElementById("prebuiltSelect");
   try {
-    const csv = await fetchFirstOk(["/prebuilt_areas.csv"], "text");
+    const csv = await fetchFirstOk(["/prebuilt_areas.csv", "./prebuilt_areas.csv", "../prebuilt_areas.csv"], "text");
     prebuiltAreas = parsePrebuiltCsv(csv);
     renderPrebuiltList();
   } catch (e) {
@@ -1219,13 +1231,31 @@ function wireEvents() {
 
   [missionIdInput, callsignInput, noteInput].forEach((el) => {
     if (!el) return;
-    el.addEventListener("input", scheduleAutoSave);
-    el.addEventListener("change", scheduleAutoSave);
+    el.addEventListener("input", () => {
+      markTouched(el.id);
+      scheduleAutoSave();
+    });
+    el.addEventListener("change", () => {
+      markTouched(el.id);
+      scheduleAutoSave();
+    });
   });
-  if (balloonInput) balloonInput.addEventListener("change", scheduleAutoSave);
-  if (autoEraseInput) autoEraseInput.addEventListener("change", scheduleAutoSave);
-  if (satcomMessagesInput) satcomMessagesInput.addEventListener("change", scheduleAutoSave);
-  if (launchConfirmedInput) launchConfirmedInput.addEventListener("change", scheduleAutoSave);
+  if (balloonInput) balloonInput.addEventListener("change", () => {
+    markTouched("balloonType");
+    scheduleAutoSave();
+  });
+  if (autoEraseInput) autoEraseInput.addEventListener("change", () => {
+    markTouched("autoErase");
+    scheduleAutoSave();
+  });
+  if (satcomMessagesInput) satcomMessagesInput.addEventListener("change", () => {
+    markTouched("satcomMessages");
+    scheduleAutoSave();
+  });
+  if (launchConfirmedInput) launchConfirmedInput.addEventListener("change", () => {
+    markTouched("launchConfirmed");
+    scheduleAutoSave();
+  });
 
   if (createAdd) createAdd.addEventListener("click", () => {
     addPoint(createPolyDraft, "createPolyPoints");
@@ -1313,6 +1343,7 @@ function wireEvents() {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener("input", () => {
+      markTouched("tt_total");
       updateTimedTotal();
       updateCounters();
       scheduleAutoSave();
@@ -1322,6 +1353,7 @@ function wireEvents() {
   const timedToggle = document.getElementById("timedEnabled");
   if (timedToggle) {
     timedToggle.addEventListener("change", () => {
+      markTouched("timedEnabled");
       setTimedEnabled(timedToggle.checked);
       updateCounters();
       scheduleAutoSave();
@@ -1333,6 +1365,7 @@ function wireEvents() {
     const card = document.getElementById("remainInBox");
     const createBtn = document.getElementById("createSetRemain");
     const apply = () => {
+      markTouched("containedEnabled");
       containedEnabled = !!containedToggle.checked;
       if (!card) return;
       card.classList.toggle("card-disabled", !containedEnabled);
@@ -1350,6 +1383,7 @@ function wireEvents() {
     const card = document.getElementById("keepOutBox");
     const createBtn = document.getElementById("createAddKeepOut");
     const apply = () => {
+      markTouched("exclusionEnabled");
       exclusionEnabled = !!exclusionToggle.checked;
       if (!card) return;
       card.classList.toggle("card-disabled", !exclusionEnabled);
@@ -1366,6 +1400,7 @@ function wireEvents() {
   if (crossingToggle) {
     const card = document.getElementById("shallNotPassBox");
     const apply = () => {
+      markTouched("crossingEnabled");
       if (!card) return;
       const enabled = !!crossingToggle.checked;
       card.classList.toggle("card-disabled", !enabled);
@@ -1417,6 +1452,7 @@ function onSaveClick() {
   const cfg = buildConfigPayload();
   const missionId = cfg.missionId || "";
   if (!missionId) {
+    alert("Mission ID required.");
     showSaveFlag("Mission ID required", true);
     return;
   }
@@ -1476,7 +1512,11 @@ document.addEventListener("DOMContentLoaded", () => {
     loadConfig().then(() => applyMissionPrefill(missionPrefill)),
     loadGeofence(),
   ]).finally(() => {
+    if (autoSaveInitTimer) clearTimeout(autoSaveInitTimer);
     autoSaveReady = true;
+    if (autoSavePending) {
+      scheduleAutoSave();
+    }
   });
   loadSuaCatalog();
   loadPrebuiltAreas();
@@ -1486,6 +1526,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveBtn = document.getElementById("saveActiveMission");
   if (saveBtn) saveBtn.addEventListener("click", onSaveClick);
   updateSelectedAreas();
+
+  autoSaveInitTimer = setTimeout(() => {
+    autoSaveReady = true;
+    if (autoSavePending) {
+      scheduleAutoSave();
+    }
+  }, 2000);
 
   const search = document.getElementById("suaSearch");
   if (search) search.addEventListener("input", renderSuaList);
