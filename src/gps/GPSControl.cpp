@@ -97,11 +97,14 @@ void GPSControl::poll()
   lastFix = gps.location.isValid();
   if (gps.satellites.isValid()) {
     lastSats = (uint8_t)gps.satellites.value();
+  } else {
+    lastSats = 0;
   }
   display_set_gps(lastFix, lastSats);
 }
 
 bool GPSControl::hasFix() { return lastFix; }
+bool GPSControl::hasGoodFix() { return lastFix && lastSats >= 4; }
 float GPSControl::latitude() { return lastLat; }
 float GPSControl::longitude() { return lastLng; }
 float GPSControl::altitudeMeters() { return lastAlt; }

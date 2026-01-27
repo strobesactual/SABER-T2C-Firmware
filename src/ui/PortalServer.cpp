@@ -29,6 +29,7 @@ static void fillDefaults(JsonDocument& doc) {
   doc["balloonType"] = "";
   doc["satcom_id"] = "";
   doc["satcom_verified"] = false;
+  doc["launch_confirmed"] = false;
   doc["time_kill_min"] = 0;
   doc["triggerCount"] = 0;
   doc["timed_enabled"] = false;
@@ -233,6 +234,7 @@ void begin() {
       if (doc.containsKey("missionId")) merged["missionId"] = doc["missionId"].as<String>();
       if (doc.containsKey("satcom_id")) merged["satcom_id"] = doc["satcom_id"].as<String>();
       if (doc.containsKey("satcom_verified")) merged["satcom_verified"] = doc["satcom_verified"].as<bool>();
+      if (doc.containsKey("launch_confirmed")) merged["launch_confirmed"] = doc["launch_confirmed"].as<bool>();
       if (doc.containsKey("time_kill_min")) merged["time_kill_min"] = doc["time_kill_min"].as<uint32_t>();
       if (doc.containsKey("triggerCount")) merged["triggerCount"] = doc["triggerCount"].as<uint32_t>();
       if (doc.containsKey("timed_enabled")) merged["timed_enabled"] = doc["timed_enabled"].as<bool>();
@@ -321,6 +323,7 @@ void begin() {
         return;
       }
       (void)saveJsonFile(GEOFENCE_DB_PATH, doc);
+      (void)GeoFence::reload(GEOFENCE_PATH);
 
       request->send(200, "application/json", "{\"ok\":true}");
     }
@@ -351,6 +354,7 @@ void begin() {
       o["autoErase"] = m["autoErase"] | false;
       o["satcom_id"] = m["satcom_id"] | "";
       o["satcom_verified"] = m["satcom_verified"] | false;
+      o["launch_confirmed"] = m["launch_confirmed"] | false;
       if (m.containsKey("geofence")) {
         o["geofence"] = m["geofence"];
       }
@@ -395,6 +399,7 @@ void begin() {
       const bool hasAutoErase = incoming.containsKey("autoErase");
       const bool hasSatcom = incoming.containsKey("satcom_id");
       const bool hasSatcomVerified = incoming.containsKey("satcom_verified");
+      const bool hasLaunchConfirmed = incoming.containsKey("launch_confirmed");
       const bool timedEnabled = incoming["timed_enabled"] | false;
       const bool containedEnabled = incoming["contained_enabled"] | false;
       const bool exclusionEnabled = incoming["exclusion_enabled"] | false;
@@ -407,6 +412,7 @@ void begin() {
       const bool autoErase = incoming["autoErase"] | false;
       const char *satcomId = incoming["satcom_id"] | "";
       const bool satcomVerified = incoming["satcom_verified"] | false;
+      const bool launchConfirmed = incoming["launch_confirmed"] | false;
       if (strlen(id) == 0) {
         request->send(400, "application/json", "{\"ok\":false,\"error\":\"missing_id\"}");
         return;
@@ -433,6 +439,7 @@ void begin() {
           if (hasAutoErase) m["autoErase"] = autoErase;
           if (hasSatcom) m["satcom_id"] = satcomId;
           if (hasSatcomVerified) m["satcom_verified"] = satcomVerified;
+          if (hasLaunchConfirmed) m["launch_confirmed"] = launchConfirmed;
           if (hasGeofence) m["geofence"] = incoming["geofence"];
           found = true;
           break;
@@ -454,6 +461,7 @@ void begin() {
         if (hasAutoErase) m["autoErase"] = autoErase;
         if (hasSatcom) m["satcom_id"] = satcomId;
         if (hasSatcomVerified) m["satcom_verified"] = satcomVerified;
+        if (hasLaunchConfirmed) m["launch_confirmed"] = launchConfirmed;
         if (hasGeofence) m["geofence"] = incoming["geofence"];
       }
 

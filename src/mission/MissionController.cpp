@@ -33,8 +33,12 @@ namespace {
   bool s_display_on = true;
   uint32_t s_time_kill_ms = 0;
   uint32_t s_last_config_ms = 0;
+  bool s_launch_confirmed = false;
+  bool s_above_launch = false;
+  uint32_t s_above_start_ms = 0;
   constexpr uint32_t LAUNCH_SAMPLE_MS = 30000;
   constexpr float LAUNCH_THRESHOLD_M = 30.48f; // 100 ft
+  constexpr uint32_t LAUNCH_SUSTAIN_MS = 15000;
   constexpr uint32_t TEST_MODE_DELAY_MS = 1000;
 }
 
@@ -62,6 +66,9 @@ void begin()
   s_test_mode_pending = false;
   s_test_mode_request_ms = 0;
   s_display_on = true;
+  s_launch_confirmed = false;
+  s_above_launch = false;
+  s_above_start_ms = 0;
 }
 
 void setTestFlightMode(bool enabled)
@@ -126,14 +133,17 @@ static void refreshConfig(uint32_t now_ms)
     return;
   }
   s_last_config_ms = now_ms;
-  StaticJsonDocument<256> cfg;
+  StaticJsonDocument<512> cfg;
   if (!s_config.load(cfg)) {
     s_time_kill_ms = 0;
+    s_satcom_verified = false;
+    s_launch_confirmed = false;
     return;
   }
   const uint32_t time_kill_min = cfg["time_kill_min"] | 0;
   s_time_kill_ms = time_kill_min * 60000UL;
   s_satcom_verified = cfg["satcom_verified"] | false;
+  s_launch_confirmed = cfg["launch_confirmed"] | false;
 }
 
 void update(uint32_t now_ms)
@@ -165,7 +175,17 @@ void update(uint32_t now_ms)
   const bool above_launch = s_launch_alt_set &&
     GPSControl::hasFix() &&
     GPSControl::altitudeMeters() > (s_launch_alt_m + LAUNCH_THRESHOLD_M);
-  const bool next_flight_mode = s_test_flight_mode || above_launch;
+  if (above_launch) {
+    if (!s_above_launch) {
+      s_above_launch = true;
+      s_above_start_ms = now_ms;
+    }
+  } else {
+    s_above_launch = false;
+    s_above_start_ms = 0;
+  }
+  const bool sustained_above = s_above_launch && (now_ms - s_above_start_ms >= LAUNCH_SUSTAIN_MS);
+  const bool next_flight_mode = s_test_flight_mode || s_launch_confirmed || sustained_above;
   if (next_flight_mode != s_flight_mode) {
     s_flight_mode = next_flight_mode;
     if (s_flight_mode) {
@@ -203,7 +223,7 @@ void update(uint32_t now_ms)
     }
   }
 
-  const bool ready_now = s_launch_alt_set && s_satcom_verified && GPSControl::hasFix();
+  const bool ready_now = s_launch_alt_set && s_satcom_verified && GPSControl::hasGoodFix();
   if (ready_now != s_hold_ready) {
     s_hold_ready = ready_now;
     if (s_hold_ready) {

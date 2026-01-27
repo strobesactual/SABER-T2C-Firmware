@@ -135,6 +135,10 @@ async function applyMissionPrefill(mission) {
     const satcom = document.getElementById("satcomMessages");
     if (satcom) satcom.checked = !!mission.satcom_verified;
   }
+  if (Object.prototype.hasOwnProperty.call(mission, "launch_confirmed")) {
+    const launchConfirmed = document.getElementById("launchConfirmed");
+    if (launchConfirmed) launchConfirmed.checked = !!mission.launch_confirmed;
+  }
 
   const toggleMap = [
     ["timedEnabled", "timed_enabled"],
@@ -185,6 +189,9 @@ async function applyMissionPrefill(mission) {
     }
     if (Object.prototype.hasOwnProperty.call(mission, "satcom_verified")) {
       cfg.satcom_verified = !!mission.satcom_verified;
+    }
+    if (Object.prototype.hasOwnProperty.call(mission, "launch_confirmed")) {
+      cfg.launch_confirmed = !!mission.launch_confirmed;
     }
     await apiSaveConfig(cfg);
     if (mission.geofence) {
@@ -602,6 +609,8 @@ function buildConfigPayload() {
   const noteInput = document.getElementById("note");
   const autoEraseInput = document.getElementById("autoErase");
   const satcomMessagesInput = document.getElementById("satcomMessages");
+  const launchConfirmedInput = document.getElementById("launchConfirmed");
+  const launchConfirmedInput = document.getElementById("launchConfirmed");
   const ttTotalSec = getTimedTotalSeconds();
   const timeKillMin = Math.round(ttTotalSec / 60);
   const triggerCount = calculateTriggerCount(ttTotalSec);
@@ -617,6 +626,7 @@ function buildConfigPayload() {
     exclusion_enabled: !!document.getElementById("exclusionEnabled")?.checked,
     crossing_enabled: !!document.getElementById("crossingEnabled")?.checked,
     satcom_verified: !!satcomMessagesInput?.checked,
+    launch_confirmed: !!launchConfirmedInput?.checked,
   };
 
   if (callsignInput) cfg.callsign = callsignInput.value.trim().slice(0, 6);
@@ -774,6 +784,8 @@ async function loadConfig() {
     if (autoErase) autoErase.checked = !!cfg?.autoErase;
     const satcom = document.getElementById("satcomMessages");
     if (satcom) satcom.checked = !!cfg?.satcom_verified;
+    const launchConfirmed = document.getElementById("launchConfirmed");
+    if (launchConfirmed) launchConfirmed.checked = !!cfg?.launch_confirmed;
     const timeKillMin = Number(cfg?.time_kill_min);
     if (Number.isFinite(timeKillMin)) {
       setTimedFieldsFromMinutes(timeKillMin);
@@ -810,7 +822,8 @@ async function loadConfig() {
 function updateReadyFlag() {
   const cfg = lastConfig;
   const status = lastStatus;
-  const hasGps = !!status?.gpsFix;
+  const satCount = Number(status?.sats);
+  const hasGps = !!status?.gpsFix && Number.isFinite(satCount) && satCount >= 4;
   const hasTermination = !!(cfg && (cfg.timed_enabled || cfg.contained_enabled || cfg.exclusion_enabled || cfg.crossing_enabled));
   setReadyFlag(hasGps && hasTermination);
 }
@@ -1212,6 +1225,7 @@ function wireEvents() {
   if (balloonInput) balloonInput.addEventListener("change", scheduleAutoSave);
   if (autoEraseInput) autoEraseInput.addEventListener("change", scheduleAutoSave);
   if (satcomMessagesInput) satcomMessagesInput.addEventListener("change", scheduleAutoSave);
+  if (launchConfirmedInput) launchConfirmedInput.addEventListener("change", scheduleAutoSave);
 
   if (createAdd) createAdd.addEventListener("click", () => {
     addPoint(createPolyDraft, "createPolyPoints");
@@ -1422,6 +1436,7 @@ function onSaveClick() {
       autoErase: !!cfg.autoErase,
       satcom_id: cfg.satcom_id || "",
       satcom_verified: !!cfg.satcom_verified,
+      launch_confirmed: !!cfg.launch_confirmed,
       geofence: geofenceDoc,
     };
 

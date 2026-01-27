@@ -68,8 +68,10 @@ function updateOledMirror(status) {
   const battery = Number(status?.battery);
   const geoCount = Number(status?.geoCount);
   const geoOk = status?.geoOk;
-  const gpsFix = !!status?.gpsFix;
   const sats = Number(status?.sats);
+  const gpsFix = !!status?.gpsFix;
+  const gpsGood = gpsFix && Number.isFinite(sats) && sats >= 4;
+  const gpsFair = gpsFix && (!Number.isFinite(sats) || sats < 4);
 
   setText("oledCallsign", callsign || "--");
   setText("oledBalloon", balloon || "");
@@ -78,7 +80,8 @@ function updateOledMirror(status) {
   setText("oledSatcom", satcom || "");
   setText("oledLora", lora || "");
 
-  const gpsText = `${gpsFix ? "Good" : "No Fix"} ${Number.isFinite(sats) ? sats : 0}`;
+  const gpsLabel = gpsGood ? "Good" : (gpsFair ? "Fair" : "No Fix");
+  const gpsText = `${gpsLabel} ${Number.isFinite(sats) ? sats : 0}`;
   setText("oledGps", gpsText);
 
   const batText = Number.isFinite(battery) && battery >= 0 ? `${battery}%` : "--";
@@ -110,7 +113,8 @@ function setReadyFlag(isReady) {
 }
 
 function updateReadyFlag(status, cfg) {
-  const hasGps = !!status?.gpsFix;
+  const satCount = Number(status?.sats);
+  const hasGps = !!status?.gpsFix && Number.isFinite(satCount) && satCount >= 4;
   const hasTermination = !!(cfg && (cfg.timed_enabled || cfg.contained_enabled || cfg.exclusion_enabled || cfg.crossing_enabled));
   setReadyFlag(hasGps && hasTermination);
 }

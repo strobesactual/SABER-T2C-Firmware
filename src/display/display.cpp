@@ -106,8 +106,11 @@ void display_show_status()
 
     u8g2.drawStr(xLabel, 24, "GPS:");
     char gpsBuf[16];
-    snprintf(gpsBuf, sizeof(gpsBuf), "%s %u",
-             gpsFix ? "Good" : "No Fix", gpsSats);
+    const char *fixText = "No Fix";
+    if (gpsFix) {
+      fixText = gpsSats >= 4 ? "Good" : "Fair";
+    }
+    snprintf(gpsBuf, sizeof(gpsBuf), "%s %u", fixText, gpsSats);
     u8g2.drawStr(xVal, 24, gpsBuf);
     int stateWidth = u8g2.getStrWidth(flightState);
     u8g2.drawStr(128 - stateWidth, 24, flightState);

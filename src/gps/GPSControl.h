@@ -6,6 +6,7 @@ namespace GPSControl {
   void begin();
   void poll();
   bool hasFix();
+  bool hasGoodFix();
   float latitude();
   float longitude();
   float altitudeMeters();

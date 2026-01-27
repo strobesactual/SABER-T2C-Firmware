@@ -255,7 +255,8 @@ function setReadyFlag(isReady) {
 }
 
 function updateReadyFlag(status, cfg) {
-  const hasGps = !!status?.gpsFix;
+  const satCount = Number(status?.sats);
+  const hasGps = !!status?.gpsFix && Number.isFinite(satCount) && satCount >= 4;
   const hasTermination = !!(cfg && (cfg.timed_enabled || cfg.contained_enabled || cfg.exclusion_enabled || cfg.crossing_enabled));
   setReadyFlag(hasGps && hasTermination);
 }
@@ -265,6 +266,15 @@ function toggleStateBox(id, ok) {
   if (!el) return;
   el.classList.toggle("box-state-good", !!ok);
   el.classList.toggle("box-state-bad", !ok);
+}
+
+function setStateBox(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove("box-state-good", "box-state-warn", "box-state-bad");
+  if (state === "good") el.classList.add("box-state-good");
+  else if (state === "warn") el.classList.add("box-state-warn");
+  else if (state === "bad") el.classList.add("box-state-bad");
 }
 
 function extractSatcomId(status) {
@@ -326,21 +336,25 @@ function setMissionFields(status) {
 }
 
 function setGpsFields(status) {
-  const hasFix = !!status?.gpsFix;
   const satCount = Number(status?.sats);
+  const hasRawFix = !!status?.gpsFix;
+  const hasGoodFix = hasRawFix && Number.isFinite(satCount) && satCount >= 4;
+  const hasFairFix = hasRawFix && (!Number.isFinite(satCount) || satCount < 4);
   const satcomId = extractSatcomId(status);
   const satcomState = satcomId ? "GOOD" : "INIT";
   const flightRaw = (status?.flightState || "").toString().trim().toUpperCase();
   const flightText = (flightRaw === "FLT" || flightRaw === "FLIGHT") ? "FLIGHT" : "GROUND";
 
-  setText("gpsFixText", hasFix ? "GOOD" : "NO FIX");
+  const fixText = hasGoodFix ? "GOOD" : (hasFairFix ? "FAIR" : "NO FIX");
+  setText("gpsFixText", fixText);
   setText("gpsSats", Number.isFinite(satCount) ? satCount : "");
   setText("satcomState", satcomState);
   setText("globalstarId", satcomId);
   setText("gpsFlight", flightText);
 
   const satcomOk = satcomState === "GOOD";
-  toggleStateBox("gpsFixText", hasFix);
+  const fixState = hasGoodFix ? "good" : (hasFairFix ? "warn" : "bad");
+  setStateBox("gpsFixText", fixState);
   toggleStateBox("satcomState", satcomOk);
 
   const lat = Number(status.lat);

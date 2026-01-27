@@ -241,7 +241,7 @@ body{
 .card-title,
 .gps-card-header{
   display:flex;
-  align-items:center;
+  align-items:flex-start;
   gap:12px;
 }
 
@@ -251,6 +251,7 @@ body{
   height:30px;
   object-fit:contain;
   flex:0 0 auto;
+  margin-top:2px;
 }
 
 .card-title h2,
@@ -336,6 +337,13 @@ input:focus, select:focus{
   text-transform:uppercase;
 }
 
+.box-state-warn{
+  border-color:#f59e0b;
+  color:#b45309;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
 /* Editable vs readonly field distinction */
 input:not([readonly]),
 select,
@@ -355,6 +363,10 @@ input.box-state-good{
 
 input.box-state-bad{
   color:#b91c1c;
+}
+
+input.box-state-warn{
+  color:#b45309;
 }
 
 /* Force editable background on selects (Safari / macOS fix) */

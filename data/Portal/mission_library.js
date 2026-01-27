@@ -66,7 +66,8 @@ function setReadyFlag(isReady) {
 }
 
 function updateReadyFlag(status, cfg) {
-  const hasGps = !!status?.gpsFix;
+  const satCount = Number(status?.sats);
+  const hasGps = !!status?.gpsFix && Number.isFinite(satCount) && satCount >= 4;
   const hasTermination = !!(cfg && (cfg.timed_enabled || cfg.contained_enabled || cfg.exclusion_enabled || cfg.crossing_enabled));
   setReadyFlag(hasGps && hasTermination);
 }
@@ -130,6 +131,7 @@ Promise.all([fetchMissions(), fetchConfig(), fetchGeofence(), fetchStatus()]).th
       autoErase: !!cfg?.autoErase,
       satcom_id: cfg?.satcom_id || "",
       satcom_verified: !!cfg?.satcom_verified,
+      launch_confirmed: !!cfg?.launch_confirmed,
     };
     if (geofence) seedMission.geofence = geofence;
     try {

@@ -152,7 +152,7 @@ void setup() {
   cachedBalloonType = "";
 
   if (portalConfig.begin()) {
-    StaticJsonDocument<256> cfg;
+    StaticJsonDocument<512> cfg;
     if (portalConfig.load(cfg)) {
       applyConfigToDisplay(cfg);
     }
@@ -194,7 +194,7 @@ void loop() {
   // ---------------- Portal config refresh ----------------
   if (now - lastConfigCheckMs >= CONFIG_REFRESH_MS) {
     lastConfigCheckMs = now;
-    StaticJsonDocument<256> cfg;
+    StaticJsonDocument<512> cfg;
     if (!portalConfig.load(cfg)) {
       fillConfigDefaults(cfg);
     }
@@ -273,7 +273,7 @@ void loop() {
       satIdPrinted = true;
 
       if (!defaultCallsignApplied && satId > 0) {
-        StaticJsonDocument<256> cfg;
+        StaticJsonDocument<512> cfg;
         if (!portalConfig.load(cfg)) {
           fillConfigDefaults(cfg);
         }
