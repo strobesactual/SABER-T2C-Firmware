@@ -13,7 +13,6 @@
 #include "satcom/SatCom.h"
 
 static const char* AP_SSID = "SABER-T2C";
-static const char* AP_PASS = "kyberdyne";
 static const char* GEOFENCE_PATH = "/geofence.json";
 static const char* GEOFENCE_DB_PATH = "/geofence_db.json";
 static const char* MISSION_LIBRARY_PATH = "/mission_library.json";
@@ -110,7 +109,8 @@ void begin() {
   }
 
   WiFi.mode(WIFI_AP);
-  WiFi.softAP(AP_SSID, AP_PASS);
+  // Open AP for troubleshooting (no password).
+  WiFi.softAP(AP_SSID);
 
   Serial.print("AP IP: ");
   Serial.println(WiFi.softAPIP());
@@ -213,7 +213,9 @@ void begin() {
 
       if (index + len != total) return; // wait for full body
 
-      StaticJsonDocument<1024> doc;
+      size_t cap = total ? (total * 2 + 1024) : (len * 2 + 1024);
+      if (cap < 2048) cap = 2048;
+      DynamicJsonDocument doc(cap);
       DeserializationError err = deserializeJson(doc, body);
 
       if (err) {
@@ -306,7 +308,9 @@ void begin() {
 
       if (index + len != total) return;
 
-      StaticJsonDocument<2048> doc;
+      size_t cap = total ? (total * 2 + 1024) : (len * 2 + 1024);
+      if (cap < 4096) cap = 4096;
+      DynamicJsonDocument doc(cap);
       DeserializationError err = deserializeJson(doc, body);
 
       if (err) {
@@ -378,7 +382,9 @@ void begin() {
 
       if (index + len != total) return;
 
-      DynamicJsonDocument incoming(8192);
+      size_t cap = total ? (total * 2 + 1024) : (len * 2 + 1024);
+      if (cap < 8192) cap = 8192;
+      DynamicJsonDocument incoming(cap);
       DeserializationError err = deserializeJson(incoming, body);
       if (err) {
         request->send(400, "application/json", "{\"ok\":false,\"error\":\"invalid_json\"}");

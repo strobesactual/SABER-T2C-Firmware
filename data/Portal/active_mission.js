@@ -63,8 +63,18 @@ async function apiSaveGeofence(obj) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(obj),
   });
-  if (!r.ok) throw new Error(`POST /api/geofence failed: ${r.status}`);
-  return await r.json();
+  const text = await r.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = null;
+  }
+  if (!r.ok || (payload && payload.ok === false)) {
+    const err = payload?.error || `HTTP ${r.status}`;
+    throw new Error(`POST /api/geofence failed: ${err}`);
+  }
+  return payload || {};
 }
 
 async function apiGetConfig() {
@@ -79,8 +89,18 @@ async function apiSaveConfig(obj) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(obj),
   });
-  if (!r.ok) throw new Error(`POST /api/config failed: ${r.status}`);
-  return await r.json();
+  const text = await r.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = null;
+  }
+  if (!r.ok || (payload && payload.ok === false)) {
+    const err = payload?.error || `HTTP ${r.status}`;
+    throw new Error(`POST /api/config failed: ${err}`);
+  }
+  return payload || {};
 }
 
 async function apiSaveMission(obj) {
@@ -89,8 +109,18 @@ async function apiSaveMission(obj) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(obj),
   });
-  if (!r.ok) throw new Error(`POST /api/missions failed: ${r.status}`);
-  return await r.json();
+  const text = await r.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch {
+    payload = null;
+  }
+  if (!r.ok || (payload && payload.ok === false)) {
+    const err = payload?.error || `HTTP ${r.status}`;
+    throw new Error(`POST /api/missions failed: ${err}`);
+  }
+  return payload || {};
 }
 
 function setText(id, v) {
@@ -1061,12 +1091,36 @@ function parsePrebuiltCsv(text) {
 
 async function loadPrebuiltAreas() {
   const select = document.getElementById("prebuiltSelect");
+  const countEl = document.getElementById("prebuiltCount");
+  if (select) {
+    select.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.textContent = "Loading areas...";
+    opt.disabled = true;
+    opt.selected = true;
+    select.appendChild(opt);
+  }
+  if (countEl) countEl.textContent = "Loading areas...";
   try {
     const csv = await fetchFirstOk(["/prebuilt_areas.csv", "./prebuilt_areas.csv", "../prebuilt_areas.csv"], "text");
     prebuiltAreas = parsePrebuiltCsv(csv);
+    if (!prebuiltAreas.length) {
+      if (select) {
+        select.innerHTML = "";
+        const opt = document.createElement("option");
+        opt.textContent = "No areas available.";
+        opt.disabled = true;
+        opt.selected = true;
+        select.appendChild(opt);
+      }
+      if (countEl) countEl.textContent = "No areas available";
+      updatePrebuiltButtons();
+      return;
+    }
     renderPrebuiltList();
   } catch (e) {
     if (select) select.innerHTML = "<option>Failed to load areas.</option>";
+    if (countEl) countEl.textContent = "Failed to load areas";
   }
 }
 
@@ -1100,6 +1154,7 @@ function renderPrebuiltList() {
   });
 
   if (countEl) countEl.textContent = `${prebuiltAreas.length} areas`;
+  select.value = selectedPrebuiltId;
   updatePrebuiltButtons();
 }
 
@@ -1489,7 +1544,7 @@ function onSaveClick() {
       showAutoSaveFlag("Saved", "saved");
       showSaveFlag("Changes Saved");
     })
-    .catch(() => showSaveFlag("Save failed", true));
+    .catch((err) => showSaveFlag(err?.message || "Save failed", true));
 }
 
 function calculateTriggerCount(ttTotalSec) {
