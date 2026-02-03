@@ -12,6 +12,7 @@ void setLoraState(const char *state);
 void setSatcomState(const char *state);
 void setBatteryPct(int pct);
 void setGeoStatus(uint8_t count, bool ok);
+void setContainedLaunch(bool inside);
 
 const char *callsign();
 const char *balloonType();
@@ -22,5 +23,6 @@ const char *satcomState();
 int batteryPct();
 uint8_t geoCount();
 bool geoOk();
+bool containedLaunch();
 
 }  // namespace SystemStatus

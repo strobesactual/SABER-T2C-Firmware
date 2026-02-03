@@ -35,16 +35,6 @@ async function fetchGeofence() {
   }
 }
 
-async function fetchStatus() {
-  try {
-    const r = await fetch("/api/status", { cache: "no-store" });
-    if (!r.ok) throw new Error("no api");
-    return await r.json();
-  } catch {
-    return null;
-  }
-}
-
 async function saveMission(mission) {
   const r = await fetch("/api/missions", {
     method: "POST",
@@ -54,33 +44,12 @@ async function saveMission(mission) {
   if (!r.ok) throw new Error("save failed");
 }
 
-function setReadyFlag(isReady) {
-  const el = document.getElementById("readyFlag");
-  if (!el) return;
-  if (isReady) {
-    el.classList.remove("is-visible");
-    return;
-  }
-  el.textContent = "Not ready for launch";
-  el.classList.add("is-visible");
-}
-
-function updateReadyFlag(status, cfg) {
-  const satCount = Number(status?.sats);
-  const hasGps = !!status?.gpsFix && Number.isFinite(satCount) && satCount >= 4;
-  const hasTermination = !!(cfg && (cfg.timed_enabled || cfg.contained_enabled || cfg.exclusion_enabled || cfg.crossing_enabled));
-  setReadyFlag(hasGps && hasTermination);
-}
-
 function render(missions, activeId) {
   const wrap = document.getElementById("missions");
 
   const rows = missions.map(m => `
     <div style="display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);">
-      <!-- Leave space for ACTIVE button (green) -->
       <button class="btn btn-green" style="visibility:${String(m.id) === String(activeId) ? "visible" : "hidden"};">Active</button>
-
-      <!-- LOAD button (blue) -->
       <button class="btn btn-blue" data-load="${m.id}">Load</button>
 
       <div style="flex:1;">
@@ -113,7 +82,8 @@ function escapeHtml(s) {
   }[c]));
 }
 
-Promise.all([fetchMissions(), fetchConfig(), fetchGeofence(), fetchStatus()]).then(async ([missions, cfg, geofence, status]) => {
+async function refreshMissionLibrary() {
+  let [missions, cfg, geofence] = await Promise.all([fetchMissions(), fetchConfig(), fetchGeofence()]);
   const activeId = cfg?.missionId || "";
   if (!missions.length) {
     const seedId = activeId || "ACTIVE";
@@ -141,15 +111,11 @@ Promise.all([fetchMissions(), fetchConfig(), fetchGeofence(), fetchStatus()]).th
       // continue with empty list
     }
   }
-  render(missions, activeId || (missions[0]?.id ?? ""));
-  updateReadyFlag(status, cfg);
-});
+  render(missions, activeId);
+}
 
-setInterval(async () => {
-  try {
-    const [status, cfg] = await Promise.all([fetchStatus(), fetchConfig()]);
-    updateReadyFlag(status, cfg);
-  } catch {
-    updateReadyFlag(null, null);
-  }
-}, 2000);
+window.refreshMissionLibrary = refreshMissionLibrary;
+
+refreshMissionLibrary().catch(() => {
+  render([], "");
+});

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Active Mission</title>
 
-  <link rel="stylesheet" href="./styles.css?v=2" />
+  <link rel="stylesheet" href="./styles.css?v=3" />
 </head>
 
 <body>
@@ -15,17 +15,14 @@
     </div>
 
     <nav class="nav">
-      <a class="navlink" href="./mission_library.html">Mission Library</a>
       <a class="navlink active" href="./active_mission.html">Active Mission</a>
       <a class="navlink" href="./map.html">Mission Status</a>
       <a class="navlink" href="./testing.html">Testing</a>
     </nav>
 
     <div class="topbar-actions">
-      <span id="readyFlag" class="ready-flag" aria-live="polite"></span>
-      <span id="autosaveFlag" class="autosave-flag" aria-live="polite"></span>
       <span id="saveFlag" class="save-flag" aria-live="polite"></span>
-      <button id="saveActiveMission" class="btn btn-primary" type="button">Save Mission</button>
+      <button id="saveActiveMission" class="btn btn-primary" type="button" onclick="portalSaveActiveMission()">Save Mission</button>
     </div>
   </header>
 
@@ -46,7 +43,7 @@
         <div class="card-right">
           <div class="field">
             <label for="missionId">Mission ID</label>
-            <input id="missionId" class="box-medium box-editable" type="text" placeholder="None" />
+            <input id="missionId" class="box-medium box-editable" type="text" />
           </div>
 
           <div class="field">
@@ -55,7 +52,6 @@
               <input id="callsign"
                 class="box-medium box-editable"
                 type="text"
-                placeholder="SR123"
                 maxlength="6" />
               <span class="callsign-limit">Limit 6 characters</span>
             </div>
@@ -64,6 +60,7 @@
           <div class="field">
             <label for="balloonType">Balloon Type</label>
             <select id="balloonType" class="box-medium box-editable">
+              <option value="">--</option>
               <option value="SABER-70-100">SABER 70-100</option>
               <option value="SABER-60-100">SABER 60-100</option>
               <option value="SABER-50-100">SABER 50-100</option>
@@ -89,11 +86,6 @@
             </select>
           </div>
 
-          <div class="field">
-            <label for="note">Note</label>
-            <input id="note" class="box-long box-editable" type="text" placeholder="Free entry…" />
-          </div>
-
           <div class="field symbol-inline">
             <label>TAK Symbol</label>
             <img
@@ -111,21 +103,6 @@
             <span>Auto-erase after termination</span>
           </div>
 
-          <div class="toggle">
-            <label class="switch">
-              <input id="satcomMessages" type="checkbox" />
-              <span class="slider"></span>
-            </label>
-            <span>I have verified SATCOM messages have been received</span>
-          </div>
-
-          <div class="toggle">
-            <label class="switch">
-              <input id="launchConfirmed" type="checkbox" />
-              <span class="slider"></span>
-            </label>
-            <span>Launch confirmed (allow flight mode)</span>
-          </div>
         </div>
       </section>
 
@@ -318,7 +295,7 @@
         </div>
       </section>
 
-<section class="card mission-box" id="createPolygonsBox">
+      <section class="card mission-box" id="createPolygonsBox">
         <div class="card-left">
           <div class="box-header">
             <h2>Create polygons</h2>
@@ -340,9 +317,16 @@
         </div>
       </section>
 
+      <section class="card">
+        <h2 style="margin:0 0 14px 0;">Mission Library</h2>
+        <div id="missions" class="status-box">Loading missions…</div>
+      </section>
+
     </div>
   </main>
 
-<script src="./active_mission.js?v=2"></script>
+<script src="./active_mission.js?v=39"></script>
+<script src="./mission_library.js"></script>
+<script src="./save_mission.js?v=2"></script>
 </body>
 </html>

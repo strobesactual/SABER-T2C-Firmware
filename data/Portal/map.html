@@ -14,25 +14,59 @@
     </div>
 
     <nav class="nav">
-      <a class="navlink" href="./mission_library.html">Mission Library</a>
       <a class="navlink" href="./active_mission.html">Active Mission</a>
       <a class="navlink active" href="./map.html">Mission Status</a>
       <a class="navlink" href="./testing.html">Testing</a>
     </nav>
 
     <div class="topbar-actions">
-      <span id="readyFlag" class="ready-flag" aria-live="polite"></span>
     </div>
   </header>
 
   <main class="container">
     <div class="mission-grid">
       <section class="card gps-card mission-card">
-        <div class="gps-card-header">
-          <img class="gps-icon" src="./assets/mission_icon.png" alt="Mission" />
-          <div class="gps-card-title">
-            <h2>Mission</h2>
-            <p>Live mission status</p>
+        <div class="mission-left">
+          <div class="gps-card-header">
+            <img class="gps-icon" src="./assets/mission_icon.png" alt="Mission" />
+            <div class="gps-card-title">
+              <h2>Mission</h2>
+              <p>Live mission status</p>
+            </div>
+          </div>
+
+          <div class="oled-mirror">
+            <div class="oled-row">
+              <span class="oled-label">ID:</span>
+              <span class="oled-value" id="oledCallsign">--</span>
+              <span class="oled-right" id="oledBalloon">--</span>
+            </div>
+            <div class="oled-row">
+              <span class="oled-label">GPS:</span>
+              <span class="oled-value" id="oledGps">--</span>
+              <span class="oled-right" id="oledFlight">--</span>
+            </div>
+            <div class="oled-row">
+              <span class="oled-label">SATCOM:</span>
+              <span class="oled-value" id="oledSatcom">--</span>
+            </div>
+            <div class="oled-row">
+              <span class="oled-label">LoRa:</span>
+              <span class="oled-value" id="oledLora">--</span>
+            </div>
+            <div class="oled-row">
+              <span class="oled-label">STATUS:</span>
+              <span class="oled-value" id="oledHold">--</span>
+              <span class="oled-center" id="oledGeo">--</span>
+              <span class="oled-right" id="oledBattery">--</span>
+            </div>
+          </div>
+
+          <div class="ready-pill-row">
+            <div id="pillSatcom" class="ready-pill">SATCOM MSG?</div>
+            <div id="pillLaunchPos" class="ready-pill">Launch Position</div>
+            <div id="pillGpsFix" class="ready-pill">No GPS Fix</div>
+            <div id="pillContained" class="ready-pill">Contained</div>
           </div>
         </div>
 
@@ -50,7 +84,7 @@
 
             <div class="inline-field">
               <label>LoRa</label>
-              <div id="missionLora" class="box-short box-display box-center">N/A</div>
+              <div id="missionLora" class="box-short box-display box-center">DISABLED</div>
             </div>
           </div>
 
@@ -70,18 +104,45 @@
           </div>
 
           <div class="field termination-block">
-            <div class="mission-section-title">Termination</div>
-            <div class="termination-row">
-              <div id="missionGeofenceCount" class="termination-box box-narrow box-display">00</div>
-              <span>Geofence Restrictions</span>
+            <div class="termination-grid">
+              <div class="termination-left">
+                <div class="termination-row">
+                  <div id="missionFlightTimer" class="flight-timer-inline">00:00:00</div>
+                  <span>Elapsed flight time</span>
+                </div>
+              </div>
+              <div class="termination-right">
+                <div class="termination-row">
+                  <div id="missionTerminationSeconds" class="flight-timer-inline">00:00:00</div>
+                  <span>Termination countdown</span>
+                </div>
+              </div>
             </div>
-            <div class="termination-row">
-              <div id="missionTerminationSeconds" class="termination-box box-narrow box-display">0000</div>
-              <span>Minutes until termination</span>
-            </div>
-            <div class="termination-row">
-              <div id="missionFlightTimer" class="termination-box box-narrow box-display">0000</div>
-              <span>Flight timer (minutes)</span>
+
+            <div class="termination-actions">
+              <div class="toggle">
+                <label class="switch">
+                  <input id="satcomMessages" type="checkbox" />
+                  <span class="slider"></span>
+                </label>
+                <span>SATCOM message reception verified</span>
+              </div>
+
+              <div class="toggle">
+                <label class="switch">
+                  <input id="launchConfirmed" type="checkbox" />
+                  <span class="slider"></span>
+                </label>
+                <span>Trigger flight mode (launch confirmed)</span>
+              </div>
+
+              <div class="toggle">
+                <label class="switch">
+                  <input id="resetFlightMode" type="checkbox" />
+                  <span class="slider"></span>
+                </label>
+                <span>Reset system to ground</span>
+              </div>
             </div>
           </div>
         </div>

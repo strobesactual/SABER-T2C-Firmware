@@ -11,6 +11,7 @@ namespace {
   int s_batteryPct = -1;
   uint8_t s_geoCount = 0;
   bool s_geoOk = true;
+  bool s_containedLaunch = false;
 }
 
 namespace SystemStatus {
@@ -70,6 +71,11 @@ void setGeoStatus(uint8_t count, bool ok)
   s_geoOk = ok;
 }
 
+void setContainedLaunch(bool inside)
+{
+  s_containedLaunch = inside;
+}
+
 const char *callsign() { return s_callsign; }
 const char *balloonType() { return s_balloonType; }
 const char *holdState() { return s_holdState; }
@@ -79,5 +85,6 @@ const char *satcomState() { return s_satcomState; }
 int batteryPct() { return s_batteryPct; }
 uint8_t geoCount() { return s_geoCount; }
 bool geoOk() { return s_geoOk; }
+bool containedLaunch() { return s_containedLaunch; }
 
 }  // namespace SystemStatus

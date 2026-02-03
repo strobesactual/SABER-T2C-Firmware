@@ -25,4 +25,7 @@ namespace GeoFence {
   size_t violationCount();
   const Violation &violation(size_t idx);
   void clearViolations();
+
+  // Check if point is inside any stay-in polygon. hasStayIn is set if any exist.
+  bool containedAt(double lat, double lon, bool *hasStayIn);
 }

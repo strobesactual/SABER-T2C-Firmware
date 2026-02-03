@@ -27,8 +27,10 @@ static void fillDefaults(JsonDocument& doc) {
   doc["callsign"] = "";
   doc["balloonType"] = "";
   doc["satcom_id"] = "";
+  doc["satcom_id_manual"] = false;
   doc["satcom_verified"] = false;
   doc["launch_confirmed"] = false;
+  doc["test_mode"] = false;
   doc["time_kill_min"] = 0;
   doc["triggerCount"] = 0;
   doc["timed_enabled"] = false;
@@ -153,6 +155,7 @@ void begin() {
     doc["satcom_id"] = cfg["satcom_id"] | "";
     doc["time_kill_min"] = cfg["time_kill_min"] | 0;
     doc["triggerCount"] = cfg["triggerCount"] | 0;
+    doc["contained_launch"] = SystemStatus::containedLaunch();
     doc["launch_set"] = MissionController::launchLocationSet();
     doc["launch_lat"] = MissionController::launchLatitude();
     doc["launch_lon"] = MissionController::launchLongitude();
@@ -237,6 +240,7 @@ void begin() {
       if (doc.containsKey("satcom_id")) merged["satcom_id"] = doc["satcom_id"].as<String>();
       if (doc.containsKey("satcom_verified")) merged["satcom_verified"] = doc["satcom_verified"].as<bool>();
       if (doc.containsKey("launch_confirmed")) merged["launch_confirmed"] = doc["launch_confirmed"].as<bool>();
+      if (doc.containsKey("test_mode")) merged["test_mode"] = doc["test_mode"].as<bool>();
       if (doc.containsKey("time_kill_min")) merged["time_kill_min"] = doc["time_kill_min"].as<uint32_t>();
       if (doc.containsKey("triggerCount")) merged["triggerCount"] = doc["triggerCount"].as<uint32_t>();
       if (doc.containsKey("timed_enabled")) merged["timed_enabled"] = doc["timed_enabled"].as<bool>();
@@ -286,9 +290,21 @@ void begin() {
       const bool forceGeofence = doc["force_geofence"] | false;
       const bool flightMode = doc["flight_mode"] | false;
       const bool testMode = doc["test_mode"] | false;
+      const bool resetGround = doc["reset_ground"] | false;
       GeoFence::setForcedViolation(forceGeofence);
       MissionController::setTestFlightMode(flightMode);
       MissionController::setTestMode(testMode);
+      if (doc.containsKey("test_mode")) {
+        StaticJsonDocument<512> cfg;
+        if (!store.load(cfg)) {
+          fillDefaults(cfg);
+        }
+        cfg["test_mode"] = testMode;
+        (void)store.save(cfg);
+      }
+      if (resetGround) {
+        MissionController::resetToGround();
+      }
 
       request->send(200, "application/json", "{\"ok\":true}");
     }

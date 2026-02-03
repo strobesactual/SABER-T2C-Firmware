@@ -40,6 +40,9 @@ namespace {
   bool s_has_prev = false;
   double s_prev_lat = 0.0;
   double s_prev_lon = 0.0;
+  bool s_violation_pending = false;
+  uint32_t s_violation_start_ms = 0;
+  constexpr uint32_t VIOLATION_SUSTAIN_MS = 30000;
 
   bool pointInPolygon(const std::vector<Point> &poly, double lat, double lon)
   {
@@ -174,6 +177,8 @@ bool begin(const char *path)
 
 bool reload(const char *path)
 {
+  s_violation_pending = false;
+  s_violation_start_ms = 0;
   return loadFromJson(path);
 }
 
@@ -219,6 +224,19 @@ bool update(double lat, double lon)
     }
   }
 
+  if (!s_violations.empty()) {
+    if (!s_violation_pending) {
+      s_violation_pending = true;
+      s_violation_start_ms = millis();
+      s_violations.clear();
+    } else if (millis() - s_violation_start_ms < VIOLATION_SUSTAIN_MS) {
+      s_violations.clear();
+    }
+  } else {
+    s_violation_pending = false;
+    s_violation_start_ms = 0;
+  }
+
   s_prev_lat = lat;
   s_prev_lon = lon;
   s_has_prev = true;
@@ -232,6 +250,8 @@ void setForcedViolation(bool enabled)
   if (!s_force_violation) {
     s_violations.clear();
   }
+  s_violation_pending = false;
+  s_violation_start_ms = 0;
 }
 
 bool forcedViolation()
@@ -257,6 +277,22 @@ const Violation &violation(size_t idx)
 void clearViolations()
 {
   s_violations.clear();
+}
+
+bool containedAt(double lat, double lon, bool *hasStayIn)
+{
+  bool has = false;
+  bool inside = false;
+  for (const Rule &r : s_rules) {
+    if (r.type != RuleType::StayIn) continue;
+    has = true;
+    if (pointInPolygon(r.polygon, lat, lon)) {
+      inside = true;
+      break;
+    }
+  }
+  if (hasStayIn) *hasStayIn = has;
+  return has && inside;
 }
 
 }  // namespace GeoFence

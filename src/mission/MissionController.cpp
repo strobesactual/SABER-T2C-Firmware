@@ -34,10 +34,12 @@ namespace {
   uint32_t s_time_kill_ms = 0;
   uint32_t s_last_config_ms = 0;
   bool s_launch_confirmed = false;
+  bool s_test_mode_config = false;
+  bool s_contained_enabled = false;
   bool s_above_launch = false;
   uint32_t s_above_start_ms = 0;
   constexpr uint32_t LAUNCH_SAMPLE_MS = 30000;
-  constexpr float LAUNCH_THRESHOLD_M = 30.48f; // 100 ft
+  constexpr float LAUNCH_THRESHOLD_M = 100.0f; // 100 m
   constexpr uint32_t LAUNCH_SUSTAIN_MS = 15000;
   constexpr uint32_t TEST_MODE_DELAY_MS = 1000;
 }
@@ -69,6 +71,8 @@ void begin()
   s_launch_confirmed = false;
   s_above_launch = false;
   s_above_start_ms = 0;
+  s_test_mode_config = false;
+  s_contained_enabled = false;
 }
 
 void setTestFlightMode(bool enabled)
@@ -85,6 +89,28 @@ void setTestMode(bool enabled)
     s_test_mode = false;
     s_test_mode_pending = false;
   }
+}
+
+void resetToGround()
+{
+  s_test_flight_mode = false;
+  s_flight_mode = false;
+  s_timer_running = false;
+  s_timer_start_ms = 0;
+  s_flight_timer_sec = 0;
+  s_above_launch = false;
+  s_above_start_ms = 0;
+  s_launch_alt_set = false;
+  s_launch_alt_m = 0.0f;
+  s_launch_sum_m = 0.0f;
+  s_launch_samples = 0;
+  s_launch_start_ms = 0;
+  s_launch_location_set = false;
+  s_launch_lat = 0.0f;
+  s_launch_lon = 0.0f;
+  display_set_flight_state("GROUND");
+  SystemStatus::setFlightState("GROUND");
+  display_show_status();
 }
 
 bool testFlightMode()
@@ -144,6 +170,12 @@ static void refreshConfig(uint32_t now_ms)
   s_time_kill_ms = time_kill_min * 60000UL;
   s_satcom_verified = cfg["satcom_verified"] | false;
   s_launch_confirmed = cfg["launch_confirmed"] | false;
+  s_contained_enabled = cfg["contained_enabled"] | false;
+  const bool cfg_test_mode = cfg["test_mode"] | false;
+  if (cfg_test_mode != s_test_mode_config) {
+    s_test_mode_config = cfg_test_mode;
+    setTestMode(cfg_test_mode);
+  }
 }
 
 void update(uint32_t now_ms)
@@ -174,6 +206,7 @@ void update(uint32_t now_ms)
 
   const bool above_launch = s_launch_alt_set &&
     GPSControl::hasFix() &&
+    isfinite(GPSControl::altitudeMeters()) &&
     GPSControl::altitudeMeters() > (s_launch_alt_m + LAUNCH_THRESHOLD_M);
   if (above_launch) {
     if (!s_above_launch) {
@@ -223,7 +256,8 @@ void update(uint32_t now_ms)
     }
   }
 
-  const bool ready_now = s_launch_alt_set && s_satcom_verified && GPSControl::hasGoodFix();
+  const bool contained_ok = !s_contained_enabled || SystemStatus::containedLaunch();
+  const bool ready_now = s_launch_alt_set && s_satcom_verified && GPSControl::hasGoodFix() && contained_ok;
   if (ready_now != s_hold_ready) {
     s_hold_ready = ready_now;
     if (s_hold_ready) {

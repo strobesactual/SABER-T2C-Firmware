@@ -30,6 +30,7 @@ static uint32_t lastSatIdQueryMs = 0;
 static uint32_t satId = 0;
 static uint32_t lastConfigCheckMs = 0;
 static bool defaultCallsignApplied = false;
+static bool satcomIdApplied = false;
 static bool configDisplayDirty = false;
 
 static ConfigStore portalConfig("/mission_active.json");
@@ -45,6 +46,8 @@ static void fillConfigDefaults(JsonDocument &doc) {
   doc.clear();
   doc["callsign"] = "";
   doc["balloonType"] = "";
+  doc["satcom_id"] = "";
+  doc["satcom_id_manual"] = false;
   doc["note"] = "";
   doc["autoErase"] = false;
 }
@@ -55,16 +58,46 @@ static String normalizeCallsign(String cs) {
   return cs;
 }
 
+static bool isAutoCallsign(const String &cs) {
+  String t = cs;
+  t.trim();
+  t.toUpperCase();
+  if (t.length() != 5) return false;
+  if (!t.startsWith("SR")) return false;
+  for (int i = 2; i < 5; i++) {
+    if (!isDigit(t[i])) return false;
+  }
+  return true;
+}
+
 static bool isUnsetCallsign(const String &cs) {
   String t = cs;
   t.trim();
   return t.length() == 0 || t.equalsIgnoreCase("NONE");
 }
 
+static bool isDefaultCallsign(const String &cs) {
+  String t = cs;
+  t.trim();
+  if (t.length() == 0) return true;
+  if (t.equalsIgnoreCase("NONE")) return true;
+  if (t.equalsIgnoreCase("SRXXX")) return true;
+  return isAutoCallsign(t);
+}
+
 static String buildDefaultCallsign(uint32_t id) {
   char buf[8];
   snprintf(buf, sizeof(buf), "SR%03lu", (unsigned long)(id % 1000));
   return String(buf);
+}
+
+static String buildDefaultCallsignFromString(const String &idStr) {
+  String t = idStr;
+  t.trim();
+  if (t.length() == 0) return "";
+  uint32_t id = (uint32_t)t.toInt();
+  if (id == 0) return "";
+  return buildDefaultCallsign(id);
 }
 
 static void applyConfigToDisplay(const JsonDocument &cfg) {
@@ -198,6 +231,28 @@ void loop() {
     if (!portalConfig.load(cfg)) {
       fillConfigDefaults(cfg);
     }
+    bool cfgChanged = false;
+    String callsign = cfg["callsign"] | "";
+    callsign = normalizeCallsign(callsign);
+    const String satcomIdStr = String(cfg["satcom_id"] | "");
+    const String defaultCs = buildDefaultCallsignFromString(satcomIdStr);
+
+    if (defaultCs.length() > 0) {
+      if (isDefaultCallsign(callsign) && !callsign.equalsIgnoreCase(defaultCs)) {
+        callsign = defaultCs;
+        cfg["callsign"] = callsign;
+        cfgChanged = true;
+      }
+    } else if (isUnsetCallsign(callsign) || callsign.equalsIgnoreCase("SRXXX")) {
+      callsign = "SRXXX";
+      cfg["callsign"] = callsign;
+      cfgChanged = true;
+    }
+
+    if (cfgChanged) {
+      (void)portalConfig.save(cfg);
+      configDisplayDirty = true;
+    }
     applyConfigToDisplay(cfg);
   }
 
@@ -241,17 +296,35 @@ void loop() {
   if (now - lastStatusDrawMs >= STATUS_REFRESH_MS) {
     BME280Sensor::update();
     PMU_AXP2101::update();
+    bool containedLaunch = false;
+    bool hasStayIn = false;
+    bool containedEnabled = false;
+    StaticJsonDocument<512> statusCfg;
+    if (portalConfig.load(statusCfg)) {
+      containedEnabled = statusCfg["contained_enabled"] | false;
+    } else {
+      fillConfigDefaults(statusCfg);
+      containedEnabled = statusCfg["contained_enabled"] | false;
+    }
     if (GPSControl::hasFix()) {
       const bool violation = GeoFence::update(GPSControl::latitude(), GPSControl::longitude());
       if (violation && !Termination::triggered() && GeoFence::violationCount() > 0) {
         const GeoFence::Violation &v = GeoFence::violation(0);
         Termination::trigger(v.detail.c_str());
       }
+      if (containedEnabled) {
+        containedLaunch = GeoFence::containedAt(GPSControl::latitude(), GPSControl::longitude(), &hasStayIn);
+      }
       display_set_geo((uint8_t)GeoFence::ruleCount(), !violation);
       SystemStatus::setGeoStatus((uint8_t)GeoFence::ruleCount(), !violation);
     } else {
       display_set_geo((uint8_t)GeoFence::ruleCount(), true);
       SystemStatus::setGeoStatus((uint8_t)GeoFence::ruleCount(), true);
+    }
+    if (!containedEnabled || !hasStayIn) {
+      SystemStatus::setContainedLaunch(false);
+    } else {
+      SystemStatus::setContainedLaunch(containedLaunch);
     }
     const int battPct = PMU_AXP2101::batteryPercent();
     if (battPct >= 0) {
@@ -272,6 +345,25 @@ void loop() {
       SystemStatus::setSatcomState(satBuf);
       satIdPrinted = true;
 
+      if (!satcomIdApplied && satId > 0) {
+        StaticJsonDocument<512> cfg;
+        if (!portalConfig.load(cfg)) {
+          fillConfigDefaults(cfg);
+        }
+        const bool manualSatcomId = cfg["satcom_id_manual"] | false;
+        if (manualSatcomId) {
+          satcomIdApplied = true;
+        } else {
+        const String newSatcomId = String(satId);
+        const String currentSatcomId = String(cfg["satcom_id"] | "");
+        if (!currentSatcomId.equals(newSatcomId)) {
+          cfg["satcom_id"] = newSatcomId;
+          (void)portalConfig.save(cfg);
+        }
+        satcomIdApplied = true;
+        }
+      }
+
       if (!defaultCallsignApplied && satId > 0) {
         StaticJsonDocument<512> cfg;
         if (!portalConfig.load(cfg)) {
@@ -279,8 +371,8 @@ void loop() {
         }
         String callsign = cfg["callsign"] | "";
         callsign = normalizeCallsign(callsign);
-        if (isUnsetCallsign(callsign)) {
-          String defaultCs = buildDefaultCallsign(satId);
+        const String defaultCs = buildDefaultCallsign(satId);
+        if (isDefaultCallsign(callsign) && !callsign.equalsIgnoreCase(defaultCs)) {
           cfg["callsign"] = defaultCs;
           display_set_callsign(defaultCs.c_str());
           SystemStatus::setCallsign(defaultCs.c_str());

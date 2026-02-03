@@ -42,6 +42,19 @@ async function fetchConfig() {
   return await r.json();
 }
 
+function normalizeFlightMode(status) {
+  const raw = (status?.flightState || "").toString().trim().toUpperCase();
+  if (raw === "FLIGHT" || raw === "FLT") return "FLIGHT";
+  return "GROUND";
+}
+
+function shouldContinuePolling(status, testFlags) {
+  if (Date.now() < forcePollUntil) return true;
+  const flightMode = normalizeFlightMode(status);
+  const testMode = !!testFlags?.test_mode;
+  return flightMode !== "FLIGHT" || testMode;
+}
+
 async function saveTestFlags(obj) {
   const r = await fetch("/api/test", {
     method: "POST",
@@ -49,6 +62,16 @@ async function saveTestFlags(obj) {
     body: JSON.stringify(obj),
   });
   if (!r.ok) throw new Error(`POST /api/test failed: ${r.status}`);
+  return await r.json();
+}
+
+async function saveConfig(payload) {
+  const r = await fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error(`POST /api/config failed: ${r.status}`);
   return await r.json();
 }
 
@@ -64,7 +87,7 @@ function updateOledMirror(status) {
   const flight = (status?.flightState || "").toString();
   const hold = (status?.holdState || "").toString();
   const satcom = (status?.satcomState || "").toString();
-  const lora = (status?.lora || "").toString();
+  const lora = "Disabled";
   const battery = Number(status?.battery);
   const geoCount = Number(status?.geoCount);
   const geoOk = status?.geoOk;
@@ -119,13 +142,20 @@ function updateReadyFlag(status, cfg) {
   setReadyFlag(hasGps && hasTermination);
 }
 
+let pollTimer = null;
+let forcePollUntil = 0;
+
 async function refresh() {
+  let status = null;
+  let testFlags = null;
   try {
-    const [status, testFlags, cfg] = await Promise.all([
+    const [statusRes, testRes, cfg] = await Promise.all([
       fetchStatus(),
       fetchTestFlags(),
       fetchConfig(),
     ]);
+    status = statusRes;
+    testFlags = testRes;
     updateGpsMode(status);
     updateOledMirror(status);
     setText("flightTimer", formatTimer(status?.flight_timer_sec));
@@ -136,7 +166,7 @@ async function refresh() {
     }
     const flightToggle = $("flightModeEnabled");
     if (flightToggle) {
-      flightToggle.checked = !!testFlags?.flight_mode;
+      flightToggle.checked = !!cfg?.launch_confirmed;
     }
     const testToggle = $("testModeEnabled");
     if (testToggle) {
@@ -146,6 +176,14 @@ async function refresh() {
     setText("gpsFlight", "--");
     setText("oledCallsign", "--");
     setReadyFlag(false);
+  }
+
+  if (shouldContinuePolling(status, testFlags)) {
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = setTimeout(refresh, 2000);
+  } else if (pollTimer) {
+    clearTimeout(pollTimer);
+    pollTimer = null;
   }
 }
 
@@ -166,6 +204,8 @@ document.addEventListener("DOMContentLoaded", () => {
         flight_mode: flightMode,
         test_mode: testMode,
       });
+      await saveConfig({ launch_confirmed: flightMode });
+      if (!pollTimer) refresh();
     } catch (e) {
       if (geoToggle) geoToggle.checked = !forceGeofence;
       if (flightToggle) flightToggle.checked = !flightMode;
@@ -191,14 +231,20 @@ document.addEventListener("DOMContentLoaded", () => {
           force_geofence: !!geoToggle?.checked,
           flight_mode: false,
           test_mode: !!testToggle?.checked,
+          reset_ground: true,
         });
+        await saveConfig({ launch_confirmed: false });
       } catch (e) {
         if (flightToggle) flightToggle.checked = true;
       } finally {
         resetToggle.checked = false;
+        forcePollUntil = Date.now() + 15000;
+        if (pollTimer) clearTimeout(pollTimer);
+        pollTimer = setTimeout(refresh, 200);
       }
     });
   }
   refresh();
-  setInterval(refresh, 2000);
+  if (pollTimer) clearTimeout(pollTimer);
+  pollTimer = setTimeout(refresh, 2000);
 });

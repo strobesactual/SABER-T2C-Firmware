@@ -8,6 +8,7 @@ namespace MissionController {
 
   void setTestFlightMode(bool enabled);
   void setTestMode(bool enabled);
+  void resetToGround();
   bool testFlightMode();
   bool testModeActive();
   bool flightModeActive();

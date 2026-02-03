@@ -233,6 +233,45 @@ async function apiGetConfig() {
   return await r.json();
 }
 
+async function apiSaveConfig(payload) {
+  const r = await fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const text = await r.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+  if (!r.ok || (data && data.ok === false)) {
+    const err = data?.error || `HTTP ${r.status}`;
+    throw new Error(`POST /api/config failed: ${err}`);
+  }
+  return data || {};
+}
+
+async function apiSaveTest(payload) {
+  const r = await fetch("/api/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`POST /api/test failed: ${r.status} ${text}`);
+  }
+  return await r.json();
+}
+
+async function apiGetTest() {
+  const r = await fetch("/api/test", { cache: "no-store" });
+  if (!r.ok) throw new Error(`GET /api/test failed: ${r.status}`);
+  return await r.json();
+}
+
 function setText(id, v) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -261,6 +300,19 @@ function updateReadyFlag(status, cfg) {
   setReadyFlag(hasGps && hasTermination);
 }
 
+function normalizeFlightMode(status) {
+  const raw = (status?.flightState || "").toString().trim().toUpperCase();
+  if (raw === "FLIGHT" || raw === "FLT") return "FLIGHT";
+  return "GROUND";
+}
+
+function shouldContinuePolling(status, testFlags) {
+  if (Date.now() < forcePollUntil) return true;
+  const flightMode = normalizeFlightMode(status);
+  const testMode = !!testFlags?.test_mode;
+  return flightMode !== "FLIGHT" || testMode;
+}
+
 function toggleStateBox(id, ok) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -277,6 +329,15 @@ function setStateBox(id, state) {
   else if (state === "bad") el.classList.add("box-state-bad");
 }
 
+function formatTimer(seconds) {
+  const total = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+  const hrs = Math.floor(total / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  const pad = (v) => String(v).padStart(2, "0");
+  return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+}
+
 function extractSatcomId(status) {
   if (!status) return "";
   const direct = status.globalstarId || status.satcomId || status.satId || "";
@@ -287,43 +348,42 @@ function extractSatcomId(status) {
   return match ? match[1] : "";
 }
 
-function setMissionFields(status) {
-  const hold = (status?.holdState || "").toString().trim().toUpperCase();
-  const statusText = hold === "HOLD" ? "HOLD" : "READY";
-  const triggerCount = Number(status?.triggerCount);
-  const timeKillMin = Number(status?.time_kill_min);
-  const timerTrigger = Number.isFinite(timeKillMin) && timeKillMin > 0 ? 1 : 0;
-  const geoCountText = Number.isFinite(triggerCount)
-    ? Math.max(triggerCount - timerTrigger, 0)
-    : 0;
-  const lora = (status?.lora || "").toString().trim();
+function setMissionFields(status, cfg) {
+  const satcomOk = !!cfg?.satcom_verified;
+  const launchPosOk = !!status?.launch_set;
+  const satCount = Number(status?.sats);
+  const gpsOk = !!status?.gpsFix && Number.isFinite(satCount) && satCount >= 4;
+  const containedEnabled = !!cfg?.contained_enabled;
+  const containedOk = !containedEnabled || !!status?.contained_launch;
+  const readyNow = satcomOk && launchPosOk && gpsOk && containedOk;
+  const statusText = readyNow ? "READY" : "NOT READY";
   const batt = Number(status?.battery);
   const battText = Number.isFinite(batt) && batt >= 0 ? `${batt}%` : "--";
-  const minutes = Number(status?.time_kill_min);
-  const minutesText = Number.isFinite(minutes) ? String(minutes).padStart(4, "0") : "0000";
   const flightSeconds = Number(status?.flight_timer_sec);
-  const flightMinutes = Number.isFinite(flightSeconds) ? Math.floor(flightSeconds / 60) : 0;
-  const flightText = String(flightMinutes).padStart(4, "0");
+  const flightText = formatTimer(flightSeconds);
+  const timeKillMin = Number(status?.time_kill_min);
+  const timeKillSec = Number.isFinite(timeKillMin) ? Math.max(0, Math.floor(timeKillMin * 60)) : 0;
+  const flightSec = Number.isFinite(flightSeconds) ? Math.max(0, Math.floor(flightSeconds)) : 0;
+  const remainingSec = Math.max(0, timeKillSec - flightSec);
+  const remainingText = formatTimer(remainingSec);
 
   const statusEl = document.getElementById("missionStatus");
   const loraEl = document.getElementById("missionLora");
   const battEl = document.getElementById("missionBattery");
-  const geoEl = document.getElementById("missionGeofenceCount");
   const secEl = document.getElementById("missionTerminationSeconds");
   const flightEl = document.getElementById("missionFlightTimer");
 
   if (statusEl) {
-    statusEl.textContent = statusText.toUpperCase();
-    toggleStateBox("missionStatus", hold !== "HOLD");
+    statusEl.textContent = statusText;
+    toggleStateBox("missionStatus", readyNow);
   }
   if (loraEl) {
-    const ready = lora && lora.toUpperCase() !== "INIT";
-    loraEl.textContent = ready ? "READY" : "N/A";
-    toggleStateBox("missionLora", ready);
+    loraEl.textContent = "DISABLED";
+    loraEl.classList.remove("box-state-good", "box-state-warn", "box-state-bad");
+    loraEl.classList.add("box-state-disabled");
   }
   if (battEl) battEl.textContent = battText;
-  if (geoEl) geoEl.textContent = String(geoCountText).padStart(2, "0");
-  if (secEl) secEl.textContent = minutesText;
+  if (secEl) secEl.textContent = remainingText;
   if (flightEl) flightEl.textContent = flightText;
 
   const launchSet = !!status?.launch_set;
@@ -333,6 +393,106 @@ function setMissionFields(status) {
   setText("launchLat", launchSet && Number.isFinite(launchLat) ? launchLat.toFixed(6) : "--");
   setText("launchLon", launchSet && Number.isFinite(launchLon) ? launchLon.toFixed(6) : "--");
   setText("launchAlt", launchSet && Number.isFinite(launchAlt) ? launchAlt.toFixed(1) : "--");
+}
+
+function updateTerminationToggles(cfg) {
+  const satcom = document.getElementById("satcomMessages");
+  if (satcom) satcom.checked = !!cfg?.satcom_verified;
+  const launchConfirmed = document.getElementById("launchConfirmed");
+  if (launchConfirmed) launchConfirmed.checked = !!cfg?.launch_confirmed;
+}
+
+function setPillVisible(id, show) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle("is-visible", !!show);
+}
+
+function updateReadyPills(status, cfg) {
+  const satcomOk = !!cfg?.satcom_verified;
+  const launchPosOk = !!status?.launch_set;
+  const containedEnabled = !!cfg?.contained_enabled;
+  const containedOk = !!status?.contained_launch;
+  const satCount = Number(status?.sats);
+  const gpsOk = !!status?.gpsFix && Number.isFinite(satCount) && satCount >= 4;
+
+  setPillVisible("pillSatcom", !satcomOk);
+  setPillVisible("pillLaunchPos", !launchPosOk);
+  setPillVisible("pillGpsFix", !gpsOk);
+  setPillVisible("pillContained", containedEnabled && !containedOk);
+}
+
+function wireTerminationToggles() {
+  const satcom = document.getElementById("satcomMessages");
+  const launchConfirmed = document.getElementById("launchConfirmed");
+  const reset = document.getElementById("resetFlightMode");
+  const push = async () => {
+    try {
+      const payload = {
+        satcom_verified: !!satcom?.checked,
+        launch_confirmed: !!launchConfirmed?.checked,
+      };
+      await apiSaveConfig(payload);
+      await apiSaveTest({
+        flight_mode: !!launchConfirmed?.checked,
+      });
+    } catch {
+      // keep UI as-is on failure
+    }
+  };
+  if (satcom) satcom.addEventListener("change", push);
+  if (launchConfirmed) launchConfirmed.addEventListener("change", push);
+    if (reset) {
+      reset.addEventListener("change", async () => {
+        if (!reset.checked) return;
+        try {
+          await apiSaveConfig({ launch_confirmed: false });
+          await apiSaveTest({ flight_mode: false, reset_ground: true });
+          if (launchConfirmed) launchConfirmed.checked = false;
+        } catch {
+          // keep UI state
+        } finally {
+          reset.checked = false;
+          forcePollUntil = Date.now() + 15000;
+          if (pollTimer) clearTimeout(pollTimer);
+          pollTimer = setTimeout(refreshStatus, 200);
+        }
+      });
+  }
+}
+
+function updateOledMirror(status) {
+  const callsign = (status?.callsign || "").toString() || "NONE";
+  const balloon = (status?.balloonType || "").toString();
+  const flight = (status?.flightState || "").toString();
+  const hold = (status?.holdState || "").toString();
+  const satcom = (status?.satcomState || "").toString();
+  const lora = "Disabled";
+  const battery = Number(status?.battery);
+  const geoCount = Number(status?.geoCount);
+  const geoOk = status?.geoOk;
+  const sats = Number(status?.sats);
+  const gpsFix = !!status?.gpsFix;
+  const gpsGood = gpsFix && Number.isFinite(sats) && sats >= 4;
+  const gpsFair = gpsFix && (!Number.isFinite(sats) || sats < 4);
+
+  setText("oledCallsign", callsign || "--");
+  setText("oledBalloon", balloon || "");
+  setText("oledFlight", flight || "");
+  setText("oledHold", hold || "");
+  setText("oledSatcom", satcom || "");
+  setText("oledLora", lora || "");
+
+  const gpsLabel = gpsGood ? "Good" : (gpsFair ? "Fair" : "No Fix");
+  const gpsText = `${gpsLabel} ${Number.isFinite(sats) ? sats : 0}`;
+  setText("oledGps", gpsText);
+
+  const batText = Number.isFinite(battery) && battery >= 0 ? `${battery}%` : "--";
+  setText("oledBattery", batText);
+
+  const geoCountText2 = Number.isFinite(geoCount) ? geoCount : 0;
+  const geoText = `${geoCountText2} ${geoOk ? "+" : "-"}`;
+  setText("oledGeo", geoText);
 }
 
 function setGpsFields(status) {
@@ -504,12 +664,23 @@ window.addEventListener("resize", () => {
   }
 });
 
+let pollTimer = null;
+let forcePollUntil = 0;
+
 async function refreshStatus() {
+  let status = null;
+  let cfg = null;
+  let testFlags = null;
   try {
-    const [status, cfg] = await Promise.all([apiGetStatus(), apiGetConfig()]);
+    [status, cfg, testFlags] = await Promise.all([apiGetStatus(), apiGetConfig(), apiGetTest()]);
+    updateOledMirror(status);
     setGpsFields(status);
-    setMissionFields(status);
+    setMissionFields(status, cfg);
     updateReadyFlag(status, cfg);
+    updateTerminationToggles(cfg);
+    updateReadyPills(status, cfg);
+    const reset = document.getElementById("resetFlightMode");
+    if (reset) reset.checked = false;
 
     if (status?.launch_set) {
       const lat = Number(status?.launch_lat);
@@ -519,13 +690,21 @@ async function refreshStatus() {
         if (key !== lastLaunchKey) {
           lastLaunchKey = key;
           await renderMap({ lat, lon });
-          return;
         }
       }
     }
   } catch (err) {
     setGpsFields({ gpsFix: false });
     setReadyFlag(false);
+    updateOledMirror(null);
+  }
+
+  if (shouldContinuePolling(status, testFlags)) {
+    if (pollTimer) clearTimeout(pollTimer);
+    pollTimer = setTimeout(refreshStatus, 2000);
+  } else if (pollTimer) {
+    clearTimeout(pollTimer);
+    pollTimer = null;
   }
 }
 
@@ -534,4 +713,4 @@ renderMap().catch((err) => {
   console.error(err);
 });
 refreshStatus();
-setInterval(refreshStatus, 2000);
+wireTerminationToggles();
